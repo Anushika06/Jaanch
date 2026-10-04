@@ -1,0 +1,43 @@
+{
+  "name": "jaanch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jaanch — evidence-backed investigation of investment-pitch claims for Indian retail investors.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @jaanch/server --filter @jaanch/web dev",
+    "dev:server": "pnpm --filter @jaanch/server dev",
+    "dev:web": "pnpm --filter @jaanch/web dev",
+    "build": "pnpm --filter @jaanch/web build && pnpm --filter @jaanch/server build",
+    "start": "pnpm --filter @jaanch/server start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:live": "vitest run --config vitest.live.config.ts",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "db:migrate": "pnpm --filter @jaanch/server cli migrate",
+    "ingest": "pnpm --filter @jaanch/server cli ingest",
+    "docs:html": "node scripts/build-docs.mjs",
+    "tunnel": "cloudflared tunnel --url http://localhost:8787"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "marked": "^18.0.14",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
+  }
+}

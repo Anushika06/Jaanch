@@ -1,0 +1,40 @@
+# Optional daily refresh of official snapshots (SEBI registers, RBI Alert List) into the
+# production database. The server also refreshes stale snapshots on boot (INGEST_ON_BOOT=auto),
+# so this is a belt-and-braces job for free tiers where the server may sleep for days.
+name: Refresh official data
+
+on:
+  schedule:
+    - cron: '7 21 * * *' # 02:37 IST, after SEBI's daily update; off the top of the hour
+  workflow_dispatch:
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Ingest SEBI registers and RBI Alert List
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # The CLI does not serve traffic; it only needs the database.
+          NODE_ENV: development
+          LLM_PROVIDER: none
+          LOG_LEVEL: info
+        run: pnpm --filter @jaanch/server cli ingest all
+      - name: Remove expired reports and media
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NODE_ENV: development
+          LLM_PROVIDER: none
+        run: pnpm --filter @jaanch/server cli sweep

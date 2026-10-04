@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>User workflows — Jaanch</title>
+<style>
+  :root { --paper:#f1f4f2; --ink:#18202e; --ink2:#47526a; --rule:#d3dce4; --neel:#22306e; --surface:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --paper:#0f1420; --ink:#e8ecf3; --ink2:#a9b3c6; --rule:#2a3346; --neel:#9fb0ff; --surface:#161d2b; } }
+  body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.6 system-ui, 'Noto Sans', 'Noto Sans Devanagari', sans-serif; }
+  main { max-width:52rem; margin:0 auto; padding:2rem 1rem 4rem; }
+  h1 { color:var(--neel); font-size:2.2rem; line-height:1.1; }
+  h2 { margin-top:2.4rem; border-top:2px solid var(--ink); padding-top:.8rem; }
+  a { color:var(--neel); }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; display:block; overflow-x:auto; }
+  th, td { border-bottom:1px solid var(--rule); padding:.5rem .45rem; text-align:left; vertical-align:top; }
+  th { color:var(--ink2); }
+  code { background:rgba(127,127,127,.15); padding:.05em .3em; border-radius:4px; font-size:.9em; }
+  pre { background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:.9rem; overflow-x:auto; }
+  pre code { background:none; padding:0; }
+  pre.mermaid { background:var(--surface); text-align:center; }
+  blockquote { margin:1rem 0; padding:.6rem 1rem; border-left:4px solid var(--neel); background:var(--surface); }
+  .back { font-size:.95rem; }
+</style>
+</head>
+<body>
+<main>
+<p class="back"><a href="../README.md">Jaanch</a> · documentation</p>
+<h1>User workflows</h1>
+<h2>1. WhatsApp: forward a message</h2>
+<pre class="mermaid">flowchart TD
+  A[Receives an investment pitch] --&gt; B{First time?}
+  B -- yes --&gt; C[Saves the Jaanch number and sends the join message]
+  C --&gt; D[Forwards the message, screenshots or voice note]
+  B -- no --&gt; D
+  D --&gt; E["Jaanch: 'Checking… about 30 seconds'"]
+  E --&gt; F[Report: headline, claim stamps, warnings, could-not-check, next steps, link to full report]
+  F --&gt; G{What next?}
+  G -- reads the evidence --&gt; H[Opens the link: full web report]
+  G -- already paid --&gt; I["Sends PAID: 1930, cybercrime.gov.in, bank, UPI complaint, evidence summary link"]
+  G -- prefers Hindi --&gt; J[Sends HINDI: all replies in Hindi]
+  G -- done --&gt; K[Sends DELETE: reports and settings erased]</pre><p><strong>Joining (sandbox only).</strong> Save the sandbox number shown on the web page and send the join
+phrase (for example <code>join letter-now</code>). Twilio confirms. The sandbox session lasts 3 days; after
+that, send the join phrase again. A production WhatsApp number would not need this step.</p>
+<p><strong>Sending content.</strong> Forward the text, send up to 5 screenshots, or a voice note. Items sent
+within a few seconds of each other are investigated together. Jaanch acknowledges immediately.</p>
+<p><strong>The reply.</strong> One or two WhatsApp messages (each under 1,500 characters). Below is the engine&#39;s
+output for the demo pitch against SEBI&#39;s live register on 4 Oct 2026, with the claim extraction
+supplied in the shape the model returns (the contact email from SEBI&#39;s record is shortened):</p>
+<pre><code>*Jaanch report* 🔎
+The registration number is real. It just isn&#39;t theirs.
+
+*What the message claims*
+❌ *CONTRADICTED* — Sharma Investments is registered with SEBI (Research Analyst) under number INH000011431.
+   The message says INH000011431 belongs to Sharma Investments. SEBI&#39;s register shows INH000011431 is registered to 360 ONE Distribution Services Limited (Mumbai) — a different name.
+🔍 *NOT FOUND* — This message is from Sharma Investments.
+   We found no SEBI-registered intermediary named Sharma Investments (register updated 3 Oct 2026).
+❌ *CONTRADICTED* — Returns are guaranteed: 30% per month.
+   The message claims SEBI registration (Research Analyst) and also promises guaranteed returns. SEBI&#39;s rules do not allow registered advisers, analysts or brokers to promise assured returns.
+❌ *CONTRADICTED* — Payment should go to UPI ID 9876501234@ybl.
+   The message asks for payment to 9876501234@ybl for a SEBI-registered service (Research Analyst). SEBI requires registered intermediaries to collect UPI payments through validated UPI IDs ending in “@valid…”, and their old UPI IDs were to be discontinued. 9876501234@ybl is not such an ID.
+❔ *CAN&#39;T CHECK* — You can get a &#39;VIP&#39; group membership.
+   The message offers a &#39;VIP&#39; group membership. SEBI and the stock exchanges have warned that offers like this on social media are used to defraud investors.
+</code></pre>
+<pre><code>*Warning signs*
+⚠️ The message promises guaranteed or risk-free returns (“Guaranteed 30% monthly returns in F&amp;O”). SEBI says assured, guaranteed or fixed-return schemes are prohibited by law.
+⚠️ The message advertises an accuracy or success rate (“Our last 50 calls gave 100% accuracy”). SEBI&#39;s rules do not allow registered advisers and analysts to advertise accuracy percentages or unverified past performance.
+⚠️ 9876501234@ybl looks like a personal UPI ID (made from a mobile number), not a business collection account.
+
+*Could not check*
+• Who runs the WhatsApp/Telegram groups or channels — we can&#39;t check that.
+• Whether any promised return will actually be paid — no one can check the future.
+
+*What to do next*
+1. Pause before paying. The checks in this report found problems with what this message claims.
+2. To confirm, contact 360 ONE Distribution Services Limited using the details on SEBI&#39;s record (…@iiflw.com) — not the numbers in this message.
+3. Check any UPI ID, QR code or bank account on SEBI Check before paying a SEBI-registered firm. https://siportal.sebi.gov.in/intermediary/sebi-check
+
+Full report: https://&lt;your-domain&gt;/r/J…
+
+Reply PAID if you already sent money · HINDI for Hindi · HELP for help
+</code></pre>
+<p><strong>Commands</strong> (the whole message must be the command, so forwarded text is never misread):</p>
+<table>
+<thead>
+<tr>
+<th>Send</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HELP</code>, <code>hi</code>, <code>namaste</code>, <code>मदद</code></td>
+<td>How to use Jaanch</td>
+</tr>
+<tr>
+<td><code>HINDI</code> / <code>हिंदी</code>, <code>ENGLISH</code></td>
+<td>Switch reply language</td>
+</tr>
+<tr>
+<td><code>PAID</code>, <code>I already paid</code>, <code>पैसे भेज दिए</code></td>
+<td>Recovery steps for the last report, with a link to the evidence summary</td>
+</tr>
+<tr>
+<td><code>REPORT</code></td>
+<td>Link to the last report</td>
+</tr>
+<tr>
+<td><code>DELETE</code>, <code>मिटाओ</code></td>
+<td>Delete reports and settings</td>
+</tr>
+</tbody></table>
+<h2>2. Web: paste or upload</h2>
+<pre class="mermaid">flowchart LR
+  A[Open Jaanch] --&gt; B[Paste text / add screenshots / add link / record voice note]
+  B --&gt; C[Investigate]
+  C --&gt; D[Live progress: reading → claims → official records → SEBI rules → report]
+  D --&gt; E[Report]
+  E --&gt; F[Show evidence on any claim]
+  E --&gt; G[Copy evidence summary]
+  E --&gt; H[Share report link]
+  E --&gt; I[I already paid]
+  E --&gt; J[Delete this report]</pre><p><strong>Report layout:</strong></p>
+<ol>
+<li>Headline (a summary of the claim verdicts, never an overall rating) and dates.</li>
+<li>Tally of verdicts.</li>
+<li><em>In short</em> — only when a model-written summary passed the safety guard.</li>
+<li><em>What the message claims</em> — one entry per claim: stamp, the claim in plain words, the exact
+quote from the message, the explanation, caveats, and <em>Show evidence</em> (official record fields,
+rule citations, links, as-of dates).</li>
+<li><em>Who is contacting you, and who is registered</em> — the channel-binding table.</li>
+<li><em>Warning signs</em> — by severity.</li>
+<li><em>Could not check</em> — always present when something wasn&#39;t checkable.</li>
+<li><em>What to do next</em> — numbered, with official links and tap-to-call numbers.</li>
+<li><em>What we read from your message</em> and <em>Sources checked for this report</em> (collapsed).</li>
+</ol>
+<p>The language switch (top right) re-renders the same report in Hindi or English.</p>
+<p><strong>Samples.</strong> The home page offers three clearly labelled sample messages (a fake adviser, a crypto
+doubling pitch, a genuine SIP reminder) so anyone can see how Jaanch behaves; samples are checked
+against the same live sources.</p>
+<h2>3. &quot;I already paid&quot;</h2>
+<p>Reachable from every report (button) and on WhatsApp (<code>PAID</code>). It is routing, not a complaint
+portal, and collects nothing:</p>
+<ol>
+<li>Call <strong>1930</strong> (national helpline for reporting financial fraud) — tap to call.</li>
+<li>File at <strong>cybercrime.gov.in</strong>; report the numbers, UPI IDs and links used.</li>
+<li>Tell your <strong>bank</strong> through the number on your card or passbook or the official app.</li>
+<li>Raise a <strong>fraudulent transaction</strong> complaint in your UPI app or on NPCI&#39;s UPI Help.</li>
+<li><strong>Keep evidence</strong>: screenshots, transaction ID (UTR), numbers, UPI IDs, links.</li>
+<li><em>(Only if the message really came from a registered firm)</em> complain to the firm, then on
+<strong>SEBI SCORES</strong>.</li>
+<li>Beware of anyone offering to recover the money for a fee.</li>
+<li><strong>Copy the evidence summary</strong> (report id, timestamps, each claim with the official record,
+identifiers from the message, sources and as-of dates) and attach it to the complaint.</li>
+</ol>
+<h2>4. A legitimate message</h2>
+<p>A genuine message is not flagged for using financial words. A mutual-fund SIP reminder with the
+standard &quot;subject to market risks&quot; disclaimer produces no claims and no warnings. A message from a
+registered firm that uses its registered name, its number and its official email domain produces
+<strong>MATCHES</strong> for the registration and <strong>MATCHES</strong> for the contact details — with the caveat that
+details can be copied, and the could-not-check list still shown.</p>
+<h2>5. When something is unclear</h2>
+<ul>
+<li>Blurry number in a screenshot → <strong>CAN&#39;T CHECK</strong>, &quot;check the number in the original message&quot;;
+if one plausible reading exists in the register, it is offered as a possibility.</li>
+<li>Model or source unavailable → the report says which, and nothing is inferred from silence.</li>
+<li>Voice note when speech-to-text isn&#39;t configured → &quot;voice notes can&#39;t be checked yet&quot;.</li>
+</ul>
+
+</main>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'neutral' });
+</script>
+</body>
+</html>

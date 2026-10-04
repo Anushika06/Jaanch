@@ -1,0 +1,19 @@
+{
+  "name": "@jaanch/sources",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Official source adapters for Jaanch: SEBI intermediary registers, RBI Alert List, RDAP domain records.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@jaanch/core": "workspace:*",
+    "@jaanch/db": "workspace:*",
+    "cheerio": "^1.2.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  }
+}

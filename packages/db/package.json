@@ -1,0 +1,21 @@
+{
+  "name": "@jaanch/db",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Postgres access for Jaanch: driver abstraction (pg / embedded PGlite), migrations and repositories.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@jaanch/core": "workspace:*",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
+  }
+}

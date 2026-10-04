@@ -1,0 +1,39 @@
+# Render Blueprint (free tier). See docs/deployment.md for the full walkthrough.
+# One web service runs the API, WhatsApp webhook, worker and (optionally) the web app.
+# The database is Neon (Render's free Postgres expires after 30 days).
+services:
+  - type: web
+    name: jaanch-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUBLIC_BASE_URL
+        sync: false # e.g. https://jaanch-api.onrender.com
+      - key: WEB_BASE_URL
+        sync: false # e.g. https://jaanch.vercel.app (leave empty if Render also serves the web app)
+      - key: DATABASE_URL
+        sync: false # Neon connection string (direct, not -pooler), with sslmode=require
+      - key: APP_SECRET
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        value: whatsapp:+14155238886
+      - key: TWILIO_SANDBOX_JOIN_CODE
+        sync: false # e.g. "join letter-now"
+      - key: INGEST_ON_BOOT
+        value: auto
+      - key: WORKER_CONCURRENCY
+        value: '2'

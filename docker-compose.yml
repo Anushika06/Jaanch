@@ -1,0 +1,33 @@
+# Optional local stack: Postgres + Jaanch in Docker, closest to production.
+# For everyday development `pnpm dev` (embedded database) is enough.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: jaanch
+      POSTGRES_USER: jaanch
+      POSTGRES_PASSWORD: jaanch-local-only
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U jaanch']
+      interval: 5s
+      retries: 10
+
+  jaanch:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://jaanch:jaanch-local-only@postgres:5432/jaanch
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8787}
+    ports:
+      - '8787:8787'
+
+volumes:
+  pgdata:

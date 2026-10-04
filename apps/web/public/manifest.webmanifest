@@ -1,0 +1,18 @@
+{
+  "name": "Jaanch — check an investment message",
+  "short_name": "Jaanch",
+  "description": "Check an investment message's claims against SEBI's registers and rules before you pay.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F1F4F2",
+  "theme_color": "#22306E",
+  "lang": "en",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@jaanch/llm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Language-model adapters for Jaanch (NVIDIA NIM, OpenAI-compatible): screenshot reading, claim extraction, narration.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "probe": "tsx src/probe.ts"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.5",
+    "@grpc/proto-loader": "^0.8.1",
+    "@jaanch/core": "workspace:*",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

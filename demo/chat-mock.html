@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat mock (demo asset generator)</title>
+    <!--
+      Renders a chat-style screenshot for demos and OCR tests. Content comes from the URL hash
+      (#scam-en, #scam-hi, ...). Every sender name, phone number, UPI ID and link is FICTIONAL.
+      The registration number in the "scam" scripts is a real, current SEBI registration used to
+      demonstrate impersonation: the firm it belongs to has no connection to these messages.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Noto Sans', 'Noto Sans Devanagari', sans-serif;
+        background: #efeae2;
+      }
+      .phone {
+        width: 412px;
+        min-height: 860px;
+        margin: 0 auto;
+        background: #efeae2;
+        display: flex;
+        flex-direction: column;
+      }
+      .bar {
+        background: #075e54;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+      }
+      .avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #c8d6d3;
+        display: grid;
+        place-items: center;
+        color: #075e54;
+        font-weight: 600;
+      }
+      .name {
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .sub {
+        font-size: 12px;
+        opacity: 0.85;
+      }
+      .chat {
+        padding: 12px 10px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .msg {
+        max-width: 82%;
+        background: #fff;
+        border-radius: 8px;
+        padding: 7px 9px 18px;
+        position: relative;
+        font-size: 15px;
+        line-height: 1.38;
+        box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .msg .time {
+        position: absolute;
+        right: 8px;
+        bottom: 3px;
+        font-size: 11px;
+        color: #667781;
+      }
+      .fwd {
+        font-size: 12px;
+        color: #667781;
+        font-style: italic;
+        margin-bottom: 2px;
+      }
+      .day {
+        align-self: center;
+        background: #e1f2fb;
+        color: #54656f;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin: 6px 0;
+      }
+      a {
+        color: #027eb5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <div class="bar">
+        <div class="avatar" id="avatar">S</div>
+        <div>
+          <div class="name" id="name"></div>
+          <div class="sub" id="sub"></div>
+        </div>
+      </div>
+      <div class="chat" id="chat"></div>
+    </div>
+    <script>
+      const SCRIPTS = {
+        'scam-en': {
+          name: 'Sharma Investments ✅',
+          sub: '+91 98765 01234',
+          day: 'TODAY',
+          messages: [
+            [
+              'Namaste sir 🙏\nSharma Investments\nSEBI Registered Research Analyst\nReg No: INH000011431',
+              '10:02',
+            ],
+            [
+              '🔥 Guaranteed 30% monthly returns in F&O 🔥\nOur last 50 calls gave 100% accuracy',
+              '10:02',
+            ],
+            ['Join our VIP group for daily sure shot calls:\nt.me/+SharmaVIPcalls', '10:03'],
+            ['Pay ₹4,999 joining fee to UPI:\n9876501234@ybl', '10:03'],
+            ['Offer valid today only ⏳ Limited seats!', '10:04'],
+          ],
+        },
+        'scam-hi': {
+          name: 'शर्मा इन्वेस्टमेंट्स',
+          sub: '+91 98765 01234',
+          day: 'आज',
+          messages: [
+            [
+              'नमस्ते जी 🙏\nहम शर्मा इन्वेस्टमेंट्स से हैं\nSEBI रजिस्टर्ड रिसर्च एनालिस्ट\nरजि. नं. INH000011431',
+              '11:15',
+            ],
+            ['रोज़ 5% पक्का मुनाफ़ा, कोई नुकसान नहीं! 💰', '11:15'],
+            ['आज ही जुड़ें, सिर्फ़ 20 सीट बाकी।\nपेमेंट UPI: 9876501234@ybl', '11:16'],
+          ],
+        },
+        institutional: {
+          name: 'Elite Capital Desk',
+          sub: 'business account',
+          day: 'TODAY',
+          forwarded: true,
+          messages: [
+            [
+              'Open your Institutional Trading Account today and get pre-IPO allotment at 40% discount.\nFPI account also available for Indian residents.\nDownload our app: https://elitecapital-desk.app/EliteTrade.apk',
+              '09:41',
+            ],
+          ],
+        },
+      };
+      const key = (location.hash || '#scam-en').slice(1);
+      const s = SCRIPTS[key];
+      document.getElementById('name').textContent = s.name;
+      document.getElementById('sub').textContent = s.sub;
+      document.getElementById('avatar').textContent = s.name.trim()[0];
+      const chat = document.getElementById('chat');
+      const day = document.createElement('div');
+      day.className = 'day';
+      day.textContent = s.day;
+      chat.appendChild(day);
+      for (const [text, time] of s.messages) {
+        const m = document.createElement('div');
+        m.className = 'msg';
+        if (s.forwarded) {
+          const f = document.createElement('div');
+          f.className = 'fwd';
+          f.textContent = '↪ Forwarded';
+          m.appendChild(f);
+        }
+        m.appendChild(document.createTextNode(text));
+        const t = document.createElement('span');
+        t.className = 'time';
+        t.textContent = time;
+        m.appendChild(t);
+        chat.appendChild(m);
+      }
+    </script>
+  </body>
+</html>

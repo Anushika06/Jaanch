@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+apps/web/dist/
+*.tsbuildinfo
+coverage/
+
+# Secrets & local configuration — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+
+# Local data: embedded Postgres, uploaded media, generated private evidence
+.data/
+data/private/
+uploads/
+tmp/
+*.sqlite
+*.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Tooling / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.claude/settings.local.json
+playwright-report/
+test-results/
+.playwright-mcp/
+
+# NOTE: docs/ is intentionally tracked. Do not add it here.

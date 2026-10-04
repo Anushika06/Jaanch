@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Jaanch — check an investment message before you pay</title>
+    <meta
+      name="description"
+      content="Got an investment offer on WhatsApp? Jaanch checks its claims against SEBI's registers and rules, and shows you the evidence. Not investment advice."
+    />
+    <meta name="theme-color" content="#22306E" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Anek+Devanagari:wdth,wght@75..125,300..800&family=IBM+Plex+Mono:wght@500&display=swap"
+    />
+  </head>
+  <body>
+    <!-- Slightly uneven ink edges for the verdict stamps. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <filter id="stamp-ink">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.85"
+          numOctaves="2"
+          seed="7"
+          result="noise"
+        />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" />
+      </filter>
+    </svg>
+    <div id="root"></div>
+    <noscript
+      >Jaanch needs JavaScript. You can also forward the message to Jaanch on WhatsApp.</noscript
+    >
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

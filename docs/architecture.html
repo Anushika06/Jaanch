@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Architecture — Jaanch</title>
+<style>
+  :root { --paper:#f1f4f2; --ink:#18202e; --ink2:#47526a; --rule:#d3dce4; --neel:#22306e; --surface:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --paper:#0f1420; --ink:#e8ecf3; --ink2:#a9b3c6; --rule:#2a3346; --neel:#9fb0ff; --surface:#161d2b; } }
+  body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.6 system-ui, 'Noto Sans', 'Noto Sans Devanagari', sans-serif; }
+  main { max-width:52rem; margin:0 auto; padding:2rem 1rem 4rem; }
+  h1 { color:var(--neel); font-size:2.2rem; line-height:1.1; }
+  h2 { margin-top:2.4rem; border-top:2px solid var(--ink); padding-top:.8rem; }
+  a { color:var(--neel); }
+  table { border-collapse:collapse; width:100%; font-size:.95rem; display:block; overflow-x:auto; }
+  th, td { border-bottom:1px solid var(--rule); padding:.5rem .45rem; text-align:left; vertical-align:top; }
+  th { color:var(--ink2); }
+  code { background:rgba(127,127,127,.15); padding:.05em .3em; border-radius:4px; font-size:.9em; }
+  pre { background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:.9rem; overflow-x:auto; }
+  pre code { background:none; padding:0; }
+  pre.mermaid { background:var(--surface); text-align:center; }
+  blockquote { margin:1rem 0; padding:.6rem 1rem; border-left:4px solid var(--neel); background:var(--surface); }
+  .back { font-size:.95rem; }
+</style>
+</head>
+<body>
+<main>
+<p class="back"><a href="../README.md">Jaanch</a> · documentation</p>
+<h1>Architecture</h1>
+<p>Jaanch is one investigation engine with two channels in front of it. The engine reads a message,
+lists its claims, checks them against official sources and decides each claim with fixed rules.
+Language models only read and (optionally) summarise; they never decide.</p>
+<h2>System context</h2>
+<pre class="mermaid">flowchart LR
+  subgraph People
+    U1[Investor on WhatsApp]
+    U2[Investor on the web]
+  end
+  subgraph Providers
+    TW[Twilio WhatsApp&lt;br/&gt;sandbox / sender]
+    NIM[NVIDIA NIM&lt;br/&gt;vision + text models]
+    ASR[NVIDIA Riva ASR&lt;br/&gt;gRPC]
+  end
+  subgraph Official sources
+    SEBI[SEBI intermediary registers&lt;br/&gt;Excel export + live search&lt;br/&gt;+ inactive registrations]
+    RBI[RBI Alert List]
+    RDAP[RDAP domain records]
+    RULES[Rule table&lt;br/&gt;SEBI regulations and circulars]
+  end
+  subgraph Jaanch server
+    WH[WhatsApp channel&lt;br/&gt;webhook + conversation]
+    API[Web API]
+    Q[(Job queue&lt;br/&gt;Postgres)]
+    ENG[Investigation engine&lt;br/&gt;packages/core]
+    DB[(Postgres&lt;br/&gt;reports, snapshots,&lt;br/&gt;sessions)]
+  end
+  WEB[Web app&lt;br/&gt;React]
+
+  U1 &lt;--&gt; TW &lt;--&gt; WH
+  U2 &lt;--&gt; WEB &lt;--&gt; API
+  WH --&gt; Q
+  API --&gt; Q
+  Q --&gt; ENG
+  ENG --&gt; NIM
+  ENG --&gt; ASR
+  ENG --&gt; SEBI
+  ENG --&gt; RBI
+  ENG --&gt; RDAP
+  ENG --&gt; RULES
+  ENG --&gt; DB</pre><h2>Packages</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>packages/core</code></td>
+<td>Domain schemas (zod), deterministic extraction (registration numbers, UPI IDs, phones, links, emails, EN/HI/Hinglish phrase patterns), claim building and grounding, verification planning, adjudication, the rule table, explanation templates (English + Hindi), report/web/WhatsApp/summary rendering, and the engine. No I/O.</td>
+</tr>
+<tr>
+<td><code>packages/db</code></td>
+<td>One <code>Db</code> interface over node-postgres (production) and PGlite (embedded Postgres for development/tests); SQL migrations; repositories; the job queue.</td>
+</tr>
+<tr>
+<td><code>packages/sources</code></td>
+<td>Official source adapters and their ingestion: SEBI registers (Excel export, live search, inactive list), RBI Alert List, RDAP. Fictional fixtures for development, clearly labelled.</td>
+</tr>
+<tr>
+<td><code>packages/llm</code></td>
+<td>NVIDIA NIM client (202 polling, JSON-mode negotiation, retries), screenshot reader with tiling and consensus re-read, claim extractor, narrator, Riva speech-to-text, live model probe.</td>
+</tr>
+<tr>
+<td><code>apps/server</code></td>
+<td>Composition root: configuration, Fastify HTTP server, web API, Twilio WhatsApp channel, event-driven worker, ingestion and operations CLI.</td>
+</tr>
+<tr>
+<td><code>apps/web</code></td>
+<td>The web app: compose → progress → report → &quot;I already paid&quot;. Renders server-built view models; contains no investigation logic.</td>
+</tr>
+</tbody></table>
+<h2>The pipeline</h2>
+<pre class="mermaid">flowchart TD
+  IN[Input: text, screenshots, voice note, link] --&gt; READ
+  READ[Read&lt;br/&gt;vision model transcribes screenshots verbatim&lt;br/&gt;+ independent identifier re-read&lt;br/&gt;speech-to-text for voice notes] --&gt; DET
+  DET[Deterministic extraction&lt;br/&gt;registration numbers, UPI, phones, links, emails&lt;br/&gt;EN/HI/Hinglish phrase patterns] --&gt; CLAIMS
+  READ --&gt; MODEL[Model extraction&lt;br/&gt;JSON, schema-validated]
+  MODEL --&gt; CLAIMS
+  CLAIMS[Claim building&lt;br/&gt;every quote and identifier grounded in the transcript&lt;br/&gt;ungrounded model output discarded] --&gt; PLAN
+  PLAN[Plan and verify&lt;br/&gt;registry by number / by name, inactive list,&lt;br/&gt;alert list, domain age — with timeouts] --&gt; ADJ
+  ADJ[Adjudicate&lt;br/&gt;pure functions + rule table&lt;br/&gt;CONTRADICTED / MATCHES / NOT FOUND / CAN'T CHECK] --&gt; EXPL
+  EXPL[Explain&lt;br/&gt;templates EN/HI, evidence, next steps&lt;br/&gt;optional model summary behind a guard] --&gt; OUT
+  OUT[Report&lt;br/&gt;stored 7 days] --&gt; CH[Channel rendering&lt;br/&gt;WhatsApp messages / web view]</pre><p>Which steps involve a model:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Model?</th>
+<th>Guarantees</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Reading screenshots / audio</td>
+<td>Yes</td>
+<td>Verbatim instructions; unclear fragments listed; second identifier read compared; audio identifiers always &quot;uncertain&quot;</td>
+</tr>
+<tr>
+<td>Extraction</td>
+<td>Yes, plus deterministic patterns</td>
+<td>JSON schema validation; quotes and identifiers must occur in the transcript; identifiers taken from deterministic extraction only</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td>No</td>
+<td>Official sources only; every access records as-of date, retrieval time, mode (snapshot/live), staleness, fixture flag</td>
+</tr>
+<tr>
+<td>Adjudication</td>
+<td>No</td>
+<td>Pure, deterministic; uncertain readings and loose name bindings cannot produce CONTRADICTED</td>
+</tr>
+<tr>
+<td>Explanation</td>
+<td>Optional</td>
+<td>Templates for every factual sentence; a model summary is shown only if it adds no numbers, identifiers, labels or advice</td>
+</tr>
+</tbody></table>
+<h2>Claim types and how each is decided</h2>
+<table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>Checked against</th>
+<th>Possible verdicts</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SEBI registration (number and/or name)</td>
+<td>SEBI registers (snapshot → live search → inactive list), name comparison over legal/trade/proprietor/contact names</td>
+<td>MATCHES, CONTRADICTED (belongs to someone else / cancelled / expired), NOT FOUND, CAN&#39;T CHECK</td>
+</tr>
+<tr>
+<td>Identity (&quot;this is from X&quot;)</td>
+<td>Registers by name; contact channels vs the record (phone, email domain, website, look-alike domains)</td>
+<td>MATCHES, NOT FOUND, CAN&#39;T CHECK</td>
+</tr>
+<tr>
+<td>Guaranteed returns</td>
+<td>Rule table (registered advisers/analysts/brokers may not promise assured returns)</td>
+<td>CONTRADICTED when paired with a SEBI-registration claim, otherwise CAN&#39;T CHECK + warning</td>
+</tr>
+<tr>
+<td>Regulator/exchange endorsement</td>
+<td>Rule table (SEBI does not approve securities; exchanges/SEBI do not endorse)</td>
+<td>CONTRADICTED, CAN&#39;T CHECK</td>
+</tr>
+<tr>
+<td>Payment destination (UPI/bank/QR/crypto)</td>
+<td>Rule table (validated <code>@valid</code> UPI IDs for intermediaries), handle structure</td>
+<td>CONTRADICTED, CAN&#39;T CHECK (+ SEBI Check guidance)</td>
+</tr>
+<tr>
+<td>App install</td>
+<td>Link analysis (APK, app store, sideload) + SEBI cautions</td>
+<td>CAN&#39;T CHECK + warning</td>
+</tr>
+<tr>
+<td>Special access (institutional/FPI account, pre-IPO, IPO allotment, block deals, VIP groups)</td>
+<td>Rule table (FPI route unavailable to residents) + SEBI/exchange cautions</td>
+<td>CONTRADICTED (FPI), CAN&#39;T CHECK + warning</td>
+</tr>
+</tbody></table>
+<p>Behavioural patterns (urgency, secrecy, moving to private groups, OTP/remote-access requests,
+pay-to-withdraw, profit screenshots, accuracy claims, crypto payment, personal UPI IDs) become
+warnings with severity, never verdicts. RBI Alert List hits, new domains, look-alike domains,
+shorteners and raw-IP links are warnings with evidence.</p>
+<h2>Channels</h2>
+<p>The engine knows nothing about channels. Each channel is an adapter:</p>
+<ul>
+<li><strong>Web</strong> (<code>apps/server/src/channels/web</code>): <code>POST /api/v1/investigations</code> (multipart or JSON)
+returns an id and a one-time owner token; the client polls <code>GET /api/v1/investigations/:id</code>
+for progress and the report view; summary, recovery and delete endpoints complete the flow.</li>
+<li><strong>WhatsApp</strong> (<code>apps/server/src/channels/whatsapp</code>): a <code>MessagingTransport</code> interface with a
+Twilio implementation, and provider-independent conversation logic.</li>
+</ul>
+<pre class="mermaid">sequenceDiagram
+  participant P as Person (WhatsApp)
+  participant T as Twilio
+  participant W as Webhook
+  participant Q as Job queue
+  participant C as Conversation
+  participant E as Engine
+  P-&gt;&gt;T: forwards message + screenshots
+  T-&gt;&gt;W: POST (signed)
+  W-&gt;&gt;W: verify X-Twilio-Signature, de-duplicate MessageSid
+  W-&gt;&gt;Q: enqueue whatsapp.inbound (encrypted)
+  W--&gt;&gt;T: 200 &lt;Response/&gt; (immediately)
+  Q-&gt;&gt;C: inbound: command? else download media, validate, store briefly
+  C-&gt;&gt;Q: debounce whatsapp.collect (5 s window, 20 s max)
+  C-&gt;&gt;Q: whatsapp.send "Checking…"
+  Q-&gt;&gt;C: collect: create investigation
+  Q-&gt;&gt;E: investigation.run
+  E--&gt;&gt;Q: report stored
+  Q-&gt;&gt;C: render for WhatsApp (≤1,500 chars per message)
+  C-&gt;&gt;T: send (paced: 1 message / 3 s)
+  T-&gt;&gt;P: report + link to full evidence</pre><p>Commands are recognised only when the whole message is a command word — <code>HELP</code>, <code>HINDI</code>,
+<code>ENGLISH</code>, <code>PAID</code>, <code>DELETE</code>, <code>REPORT</code> (and Hindi equivalents) — so a forwarded pitch is never
+mistaken for a command.</p>
+<h2>Data model and retention</h2>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Holds</th>
+<th>Retention</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>investigations</code></td>
+<td>Status, stage, report JSON (claims, evidence, verdicts, transcript), owner-token hash, requester HMAC</td>
+<td>7 days (<code>REPORT_TTL_DAYS</code>), or earlier on DELETE</td>
+</tr>
+<tr>
+<td><code>jobs</code></td>
+<td>Queue; payloads encrypted with AES-256-GCM where they contain message content or reply addresses; payload scrubbed on completion</td>
+<td>Completed jobs deleted after 7 days</td>
+</tr>
+<tr>
+<td><code>blobs</code></td>
+<td>Uploaded media until read</td>
+<td>Deleted right after reading; hard expiry 30 minutes</td>
+</tr>
+<tr>
+<td><code>channel_sessions</code></td>
+<td>WhatsApp language preference, last report id, pending (encrypted) parts — keyed by HMAC of the user id</td>
+<td>30 days of inactivity</td>
+</tr>
+<tr>
+<td><code>inbound_messages</code></td>
+<td>Provider message ids (idempotency)</td>
+<td>14 days</td>
+</tr>
+<tr>
+<td><code>registry_entities</code>, <code>source_snapshots</code></td>
+<td>Official register snapshots and their provenance</td>
+<td>Replaced on each ingestion</td>
+</tr>
+<tr>
+<td><code>alert_list_entries</code></td>
+<td>RBI Alert List snapshot</td>
+<td>Replaced on each ingestion</td>
+</tr>
+<tr>
+<td><code>cache_entries</code></td>
+<td>Live lookup cache (SEBI 6 h, RDAP 7 days)</td>
+<td>Expiry</td>
+</tr>
+</tbody></table>
+<p>A sweeper deletes expired rows every 6 hours (and via <code>cli sweep</code>).</p>
+<h2>Freshness and provenance</h2>
+<p>Every report lists each source consulted with status (ok / unavailable), mode (snapshot / live /
+static rule table), the source&#39;s own as-of date, retrieval time and a fixture flag. Every
+evidence item links to the public page where a person can see the same record. SEBI snapshots
+older than 72 hours (<code>SNAPSHOT_STALE_HOURS</code>) and RBI Alert List snapshots older than 14 days (the
+list changes rarely) are marked stale in the report.</p>
+<h2>Failure behaviour</h2>
+<table>
+<thead>
+<tr>
+<th>Failure</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Language model unavailable or retired</td>
+<td>Text is still checked with deterministic patterns; screenshots are reported as unreadable; the report says the AI reader was unavailable</td>
+</tr>
+<tr>
+<td>SEBI live search down</td>
+<td>Answers from the snapshot, labelled as such; with no snapshot, CAN&#39;T CHECK</td>
+</tr>
+<tr>
+<td>RBI list / RDAP unavailable</td>
+<td>Listed under &quot;Could not check&quot;; nothing inferred</td>
+</tr>
+<tr>
+<td>Unclear screenshot</td>
+<td>Identifiers marked uncertain; never CONTRADICTED; &quot;check the number in the original message&quot;</td>
+</tr>
+<tr>
+<td>Webhook missed during a cold start</td>
+<td>Boot-time catch-up lists recent inbound messages from Twilio and processes any not yet seen</td>
+</tr>
+<tr>
+<td>Worker crash mid-job</td>
+<td>Lease expires; job re-queued; investigations are idempotent</td>
+</tr>
+<tr>
+<td>WhatsApp send fails mid-sequence</td>
+<td>Only unsent messages are retried (no duplicates); permanent provider errors (user left sandbox, 24-hour window) are dropped and logged</td>
+</tr>
+</tbody></table>
+<h2>Deployment shape</h2>
+<p>One Docker image runs everything (API, webhook, worker, web app, CLI). On free tiers: Render web
+service + Neon Postgres, with the web app optionally on Vercel. See <a href="deployment.md">deployment.md</a>
+and <a href="technical-decisions.md">technical-decisions.md</a>.</p>
+
+</main>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'neutral' });
+</script>
+</body>
+</html>
