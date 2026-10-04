@@ -41,6 +41,8 @@ export interface Meta {
     joinCode: string | null;
     link: string | null;
     sandbox: boolean;
+    /** Meta's free test number: only numbers registered by the team can use it. */
+    testNumber?: boolean;
   };
   limits: { maxImages: number; maxUploadMb: number };
   reportTtlDays: number;

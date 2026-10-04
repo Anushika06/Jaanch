@@ -52,8 +52,9 @@ messages. Say this on screen at 0:55. To use a different number, edit
 <hr>
 <h2>Pre-flight (30 minutes before recording)</h2>
 <ol>
-<li><strong>WhatsApp sandbox:</strong> on the demo phone, send the join phrase to the sandbox number (sessions
-expire after 3 days). Send <code>HELP</code> and confirm a reply arrives.</li>
+<li><strong>WhatsApp:</strong> the demo phone must be registered as a tester in the Meta app (WhatsApp → API
+Setup → To). Send <code>HELP</code> and confirm a reply arrives — this also opens the 24-hour reply window.
+If the access token is a temporary one, generate a fresh token first (they expire within a day).</li>
 <li><strong>Warm the server:</strong> open <code>https://&lt;api&gt;/healthz</code> (free hosting sleeps after 15 minutes idle).</li>
 <li><strong>Fresh data:</strong> <code>GET /api/v1/sources</code> — SEBI categories should show today&#39;s or yesterday&#39;s date.
 If not: <code>POST /admin/ingest</code> with the admin token, wait a minute.</li>
@@ -138,8 +139,8 @@ If not: <code>POST /admin/ingest</code> with the admin token, wait a minute.</li
 <td>The channel-binding table: Name <em>Different</em>, Registration <em>Same</em>.</td>
 </tr>
 </tbody></table>
-<p><strong>Backup path:</strong> if the WhatsApp reply doesn&#39;t arrive within 60 seconds (sandbox delay or a cold
-start), cut to the pre-recorded dry-run clip of the same exchange, then continue live in the
+<p><strong>Backup path:</strong> if the WhatsApp reply doesn&#39;t arrive within 60 seconds (a cold start or a slow
+model response), cut to the pre-recorded dry-run clip of the same exchange, then continue live in the
 browser with the dry-run report URL.</p>
 <h2>1:35 – 2:10 · A legitimate message</h2>
 <table>

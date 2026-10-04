@@ -27,27 +27,33 @@ to it. The web app is also the fallback channel, the debugging surface and the d
 investigation logic lives in the web app: it renders a view model produced server-side by
 `buildReportView`, the same templates WhatsApp uses.
 
-## 2. Twilio WhatsApp Sandbox now, provider-independent channel layer
+## 2. Provider-independent WhatsApp channel; Meta's Cloud API for testing
 
-**Decision.** Use Twilio's WhatsApp Sandbox for the prototype behind a `MessagingTransport`
-interface (`apps/server/src/channels/whatsapp/transport.ts`). Conversation logic depends only on
-that interface.
+**Decision.** Conversation logic depends only on a `MessagingTransport` interface
+(`apps/server/src/channels/whatsapp/transport.ts`) with two implementations: Meta's WhatsApp Cloud
+API and Twilio. `WHATSAPP_PROVIDER` selects one. The prototype runs on **Meta's free test number**.
 
-**Alternatives.** Meta's WhatsApp Cloud API test number (free, production-identical API, but
-limited to pre-registered recipient numbers, so judges and testers cannot simply join; tokens
-expire quickly); a dedicated WhatsApp Business number (weeks of Meta business verification).
+**How we got here.** The plan was Twilio's WhatsApp Sandbox. On a Twilio trial account (October 2026) the sandbox is not available: trials get a "Try out WhatsApp" flow in which inbound messages
+reach the webhook but every outbound message must be one of Twilio's fixed templates (`ContentSid`
+is required and TwiML replies are not supported), so Jaanch could not send its report. The classic
+sandbox — free-form replies within the 24-hour window — requires upgrading to a paid account. A
+fake workaround (stuffing reports into fixed templates) was rejected.
 
-**Why.** Anyone can join the sandbox by sending a join code, which suits demos and testing.
-Moving to a production sender is configuration (`TWILIO_WHATSAPP_FROM` or
-`TWILIO_MESSAGING_SERVICE_SID`) — webhook format, signatures and media handling are unchanged. A
-Meta Cloud API transport can be added by implementing the same interface.
+**Alternatives.** An upgraded Twilio account (paid; Twilio also warns its shared sandbox number may
+not deliver reliably to international numbers such as +91); a dedicated WhatsApp Business number
+(Meta business verification first).
 
-**Sandbox limits we designed around:** sessions expire 3 days after joining (users re-send the
-join code); 1 outbound message per 3 seconds (a single paced send queue); trial accounts get 50
-messages/day; free-form replies only within 24 hours of the user's last message (we only ever
-reply). In Twilio's newer console, trial accounts may only see "Try out WhatsApp" (template-only);
-the sandbox lives in the legacy console and may require an upgraded account — see
-[deployment.md](deployment.md).
+**Why Meta's Cloud API.** Free test number, free-form replies inside the 24-hour customer-service
+window, no small message cap, and it is the same API a production number uses — moving on is
+configuration (a real number, business verification), not code. Its limits: only up to five
+registered recipient numbers during testing, and temporary access tokens expire within a day
+(deployments use a system-user token).
+
+**Both providers:** webhooks are authenticated (Meta: `X-Hub-Signature-256`, HMAC-SHA256 of the raw
+body with the App Secret; Twilio: `X-Twilio-Signature`); deliveries are de-duplicated by message id;
+replies are only sent in answer to the user, within 24 hours of their last message. Cold starts are
+covered by Meta's own retries (up to 7 days) or, for Twilio, by a boot-time catch-up through its
+message-list API. Twilio's sandbox is also paced at one message per 3 seconds.
 
 ## 3. A modular monolith, not microservices
 
@@ -75,8 +81,8 @@ and storage as injected ports, which is also what makes it testable with fixture
 worker is **event-driven**: it wakes when a job is enqueued or a scheduled job falls due, and makes
 no queries while idle (`WORKER_POLL_MS=0`).
 
-**Alternatives.** Synchronous request handling (Twilio's webhook times out at 15 s; an
-investigation takes 10–60 s); Redis + BullMQ (another service to run and pay for); a polling
+**Alternatives.** Synchronous request handling (WhatsApp providers expect a webhook
+answer within seconds — Twilio times out at 15 s — while an investigation takes 30–90 s); Redis + BullMQ (another service to run and pay for); a polling
 worker (keeps a serverless database awake — on Neon's free plan, polling around the clock would
 exhaust the monthly compute allowance mid-month).
 
@@ -98,8 +104,9 @@ layer without solving anything we need — the queries are few and explicit).
 ## 6. No object storage: media is ephemeral
 
 **Decision.** Uploaded screenshots and voice notes are stored as `bytea` with a 30-minute expiry,
-read once by the reader, and deleted immediately afterwards (whatever the outcome). Inbound
-WhatsApp media is also deleted from Twilio after download (`TWILIO_DELETE_INBOUND_MEDIA=true`).
+read once by the reader, and deleted immediately afterwards (whatever the outcome). With Twilio,
+inbound media is also deleted from Twilio after download (`TWILIO_DELETE_INBOUND_MEDIA=true`);
+Meta's API offers no deletion for media a user sent, and its download URLs expire within minutes.
 
 **Why.** Privacy by design: there is no reason to keep a person's screenshots. Object storage would
 add a service and a retention problem for data we do not want.
@@ -216,10 +223,10 @@ Actions optionally refreshes official data daily. See [deployment.md](deployment
 
 **Risks and mitigations.**
 
-- _Cold starts (~1 min on Render free) vs Twilio's 15 s webhook timeout._ The webhook does
-  minimal work; on every boot the server lists recent inbound messages from Twilio's API and
-  processes any it missed (idempotent by message id), so a cold start delays a reply instead of
-  losing it.
+- _Cold starts (~1 min on Render free)._ The webhook does minimal work and answers at once. A
+  message that arrives while the service sleeps is retried by Meta until it succeeds (up to 7
+  days); with Twilio, the server lists recent inbound messages on every boot and processes any it
+  missed (idempotent by message id). Either way a cold start delays a reply instead of losing it.
 - _Neon compute allowance._ Event-driven worker; health checks never touch the database.
 - _512 MB memory._ Lazy-loaded embedded database, dense Excel parsing; ingestion can run in
   GitHub Actions instead of the web service.

@@ -13,7 +13,7 @@ flowchart LR
     U2[Investor on the web]
   end
   subgraph Providers
-    TW[Twilio WhatsApp<br/>sandbox / sender]
+    TW[WhatsApp provider<br/>Meta Cloud API or Twilio]
     NIM[NVIDIA NIM<br/>vision + text models]
     ASR[NVIDIA Riva ASR<br/>gRPC]
   end
@@ -54,7 +54,7 @@ flowchart LR
 | `packages/db`      | One `Db` interface over node-postgres (production) and PGlite (embedded Postgres for development/tests); SQL migrations; repositories; the job queue.                                                                                                                                                                             |
 | `packages/sources` | Official source adapters and their ingestion: SEBI registers (Excel export, live search, inactive list), RBI Alert List, RDAP. Fictional fixtures for development, clearly labelled.                                                                                                                                              |
 | `packages/llm`     | NVIDIA NIM client (202 polling, JSON-mode negotiation, retries), screenshot reader with tiling and consensus re-read, claim extractor, narrator, Riva speech-to-text, live model probe.                                                                                                                                           |
-| `apps/server`      | Composition root: configuration, Fastify HTTP server, web API, Twilio WhatsApp channel, event-driven worker, ingestion and operations CLI.                                                                                                                                                                                        |
+| `apps/server`      | Composition root: configuration, Fastify HTTP server, web API, WhatsApp channel (Meta Cloud API and Twilio transports), event-driven worker, ingestion and operations CLI.                                                                                                                                                        |
 | `apps/web`         | The web app: compose → progress → report → "I already paid". Renders server-built view models; contains no investigation logic.                                                                                                                                                                                                   |
 
 ## The pipeline
@@ -107,22 +107,24 @@ The engine knows nothing about channels. Each channel is an adapter:
 - **Web** (`apps/server/src/channels/web`): `POST /api/v1/investigations` (multipart or JSON)
   returns an id and a one-time owner token; the client polls `GET /api/v1/investigations/:id`
   for progress and the report view; summary, recovery and delete endpoints complete the flow.
-- **WhatsApp** (`apps/server/src/channels/whatsapp`): a `MessagingTransport` interface with a
-  Twilio implementation, and provider-independent conversation logic.
+- **WhatsApp** (`apps/server/src/channels/whatsapp`): a `MessagingTransport` interface with
+  Meta Cloud API and Twilio implementations (`WHATSAPP_PROVIDER`), and provider-independent
+  conversation logic. The diagram shows Meta; Twilio differs only in its signature scheme
+  (`X-Twilio-Signature`), its empty-TwiML answer and its one-message-per-3-seconds sandbox pacing.
 
 ```mermaid
 sequenceDiagram
   participant P as Person (WhatsApp)
-  participant T as Twilio
+  participant T as WhatsApp (Meta)
   participant W as Webhook
   participant Q as Job queue
   participant C as Conversation
   participant E as Engine
   P->>T: forwards message + screenshots
   T->>W: POST (signed)
-  W->>W: verify X-Twilio-Signature, de-duplicate MessageSid
+  W->>W: verify X-Hub-Signature-256, de-duplicate message id
   W->>Q: enqueue whatsapp.inbound (encrypted)
-  W-->>T: 200 <Response/> (immediately)
+  W-->>T: 200 (immediately)
   Q->>C: inbound: command? else download media, validate, store briefly
   C->>Q: debounce whatsapp.collect (5 s window, 20 s max)
   C->>Q: whatsapp.send "Checking…"
@@ -130,7 +132,7 @@ sequenceDiagram
   Q->>E: investigation.run
   E-->>Q: report stored
   Q->>C: render for WhatsApp (≤1,500 chars per message)
-  C->>T: send (paced: 1 message / 3 s)
+  C->>T: send (one at a time, in order)
   T->>P: report + link to full evidence
 ```
 
@@ -163,15 +165,15 @@ list changes rarely) are marked stale in the report.
 
 ## Failure behaviour
 
-| Failure                               | Behaviour                                                                                                                                |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Language model unavailable or retired | Text is still checked with deterministic patterns; screenshots are reported as unreadable; the report says the AI reader was unavailable |
-| SEBI live search down                 | Answers from the snapshot, labelled as such; with no snapshot, CAN'T CHECK                                                               |
-| RBI list / RDAP unavailable           | Listed under "Could not check"; nothing inferred                                                                                         |
-| Unclear screenshot                    | Identifiers marked uncertain; never CONTRADICTED; "check the number in the original message"                                             |
-| Webhook missed during a cold start    | Boot-time catch-up lists recent inbound messages from Twilio and processes any not yet seen                                              |
-| Worker crash mid-job                  | Lease expires; job re-queued; investigations are idempotent                                                                              |
-| WhatsApp send fails mid-sequence      | Only unsent messages are retried (no duplicates); permanent provider errors (user left sandbox, 24-hour window) are dropped and logged   |
+| Failure                               | Behaviour                                                                                                                                                                                                 |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language model unavailable or retired | Text is still checked with deterministic patterns; screenshots are reported as unreadable; the report says the AI reader was unavailable                                                                  |
+| SEBI live search down                 | Answers from the snapshot, labelled as such; with no snapshot, CAN'T CHECK                                                                                                                                |
+| RBI list / RDAP unavailable           | Listed under "Could not check"; nothing inferred                                                                                                                                                          |
+| Unclear screenshot                    | Identifiers marked uncertain; never CONTRADICTED; "check the number in the original message"                                                                                                              |
+| Webhook missed during a cold start    | Meta retries delivery until it succeeds (up to 7 days); with Twilio, a boot-time catch-up lists recent inbound messages and processes any not yet seen                                                    |
+| Worker crash mid-job                  | Lease expires; job re-queued; investigations are idempotent                                                                                                                                               |
+| WhatsApp send fails mid-sequence      | Only unsent messages are retried (no duplicates); permanent provider errors (recipient not registered for the test number, more than 24 hours since the user wrote, expired token) are dropped and logged |
 
 ## Deployment shape
 

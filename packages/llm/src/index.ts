@@ -19,12 +19,17 @@ export { prepareImageTiles } from './image.js';
 /**
  * Default models on NVIDIA's hosted API catalog. Hosted models are retired often (HTTP 410), so
  * every default can be overridden by environment variable and is checked at start-up; the
- * `probe` script compares candidates live. Chosen for documented Hindi + English support.
+ * `probe` script compares candidates live.
+ *
+ * Measured 2026-10-04 on the demo screenshots and texts (English + Hindi): muse-glimmer read
+ * every expected identifier and Hindi phrase (12–26 s per screenshot); nemotron-3.5-lightning
+ * passed every extraction check (2–13 s). Larger models (gemma-4-31b, kimi-k3, deepseek-v4.1)
+ * were queued on the free tier for over two minutes per request at the time.
  */
 export const DEFAULT_MODELS = {
-  vision: 'google/gemma-4-31b-it',
-  text: 'google/gemma-4-31b-it',
-  narrator: 'google/gemma-4-31b-it',
+  vision: 'meta/muse-glimmer-30b',
+  text: 'nvidia/nemotron-3.5-lightning-30b-a3b',
+  narrator: 'nvidia/nemotron-3.5-lightning-30b-a3b',
   asr: 'openai/whisper-large-v3',
 } as const;
 

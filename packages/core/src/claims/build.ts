@@ -48,6 +48,17 @@ const PATTERN_KIND_FROM_MODEL: Record<string, PatternKind> = {
   profit_screenshots: 'PROFIT_SCREENSHOTS',
 };
 
+/**
+ * Wording that makes a quote an approval claim (English, Hindi, Hinglish). "Registered" is
+ * deliberately absent: registration is checked against the register, not read as approval.
+ */
+const APPROVAL_WORDING = new RegExp(
+  'approv|certif|recommend|verified|authori[sz]|endors|backed|sanction|मान्यता|अनुमोद|प्रमाणित|स्वीकृत|मंजूर|मंज़ूर|सत्यापित|manzoor|pramanit|pass kiya|पास किया'.normalize(
+    'NFKC',
+  ),
+  'i',
+);
+
 const SIMPLE_PATTERN_KINDS = new Set<string>([
   'URGENCY',
   'SECRECY',
@@ -213,7 +224,7 @@ export function buildClaims(
         holderBinding =
           holderInQuote && numberInQuote
             ? 'explicit'
-            : adjacentLines(holder, reg, segments)
+            : adjacentLines(holder, reg, segments, det.patterns)
               ? 'explicit'
               : 'inferred';
       } else if (holder) {
@@ -257,7 +268,8 @@ export function buildClaims(
       holderName = senderOrg.name;
       // A heuristically detected name is never strong enough to contradict a record.
       holderBinding =
-        !heuristicOrgIds.has(senderOrg.id) && adjacentLines(senderOrg.name, reg, segments)
+        !heuristicOrgIds.has(senderOrg.id) &&
+        adjacentLines(senderOrg.name, reg, segments, det.patterns)
           ? 'explicit'
           : 'inferred';
     }
@@ -317,15 +329,19 @@ export function buildClaims(
       if (e.object === 'entity_registration') continue; // that is a registration claim
       const span = ground(e.quote);
       if (!span) continue;
+      // A quote without any approval wording ("SEBI Registered Research Analyst") is the model
+      // misreading registration wording as an endorsement — not something the message claims.
+      const patternBacked = det.patterns.some(
+        (p) => p.kind === 'ENDORSEMENT' && overlaps(p.span, span),
+      );
+      if (!patternBacked && !APPROVAL_WORDING.test(textOf(span, segments))) continue;
       endorsementSpans.push(span);
       claims.push({
         id: nextId('claim'),
         type: 'REGULATOR_ENDORSEMENT',
         quote: clip(textOf(span, segments), 300),
         spans: [span],
-        origin: det.patterns.some((p) => p.kind === 'ENDORSEMENT' && overlaps(p.span, span))
-          ? 'model+pattern'
-          : 'model',
+        origin: patternBacked ? 'model+pattern' : 'model',
         legibility: quoteLegibility(span, segments),
         authority: e.authority,
         object: e.object,
@@ -651,14 +667,33 @@ function adjacentLines(
   name: string,
   reg: RegistrationNumberEntity,
   segments: TranscriptSegment[],
+  patterns: ReadonlyArray<{ kind: string; span: Span }>,
 ): boolean {
   for (const regSpan of reg.spans) {
     const seg = segments.find((s) => s.id === regSpan.segmentId);
     if (!seg) continue;
-    const nameSpan = locateQuote(name, [seg]);
-    if (!nameSpan) continue;
-    const d = Math.abs(lineNumber(seg.text, nameSpan.start) - lineNumber(seg.text, regSpan.start));
-    if (d <= 1) return true;
+    const lines = seg.text.split('\n');
+    const regLine = lineNumber(seg.text, regSpan.start);
+    // Lines that state SEBI registration ("SEBI Registered Research Analyst").
+    const wordingLines = new Set(
+      patterns
+        .filter((p) => p.kind === 'SEBI_REGISTRATION_MENTION' && p.span.segmentId === seg.id)
+        .map((p) => lineNumber(seg.text, p.span.start)),
+    );
+    // Every occurrence of the name counts: chat screenshots repeat it in the header.
+    for (let i = 0; i < lines.length; i++) {
+      if (!locateQuote(name, [{ ...seg, text: lines[i]! }])) continue;
+      const [a, b] = i < regLine ? [i, regLine] : [regLine, i];
+      if (b - a <= 1) return true;
+      // "Name / SEBI Registered Research Analyst / Reg No: INH…" is one self-description: allow up
+      // to two short lines between name and number, provided each one states SEBI registration.
+      const between = lines.slice(a + 1, b);
+      if (
+        between.length <= 2 &&
+        between.every((line, k) => wordingLines.has(a + 1 + k) && line.length <= 60)
+      )
+        return true;
+    }
   }
   return false;
 }

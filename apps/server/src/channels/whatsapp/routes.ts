@@ -1,7 +1,10 @@
 import type { InboundRepo } from '@jaanch/db';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { safeEqual } from '../../crypto.js';
 import type { Logger } from '../../logger.js';
 import type { WhatsAppConversation } from './conversation.js';
+import { parseMetaWebhook, type MetaTransport } from './meta.js';
+import type { MessagingTransport } from './transport.js';
 import { parseTwilioInbound, type TwilioTransport } from './twilio.js';
 
 export interface WhatsAppRouteDeps {
@@ -75,19 +78,100 @@ export async function registerWhatsAppRoutes(
   });
 }
 
+export interface MetaRouteDeps {
+  transport: MetaTransport;
+  conversation: WhatsAppConversation;
+  inbound: InboundRepo;
+  phoneNumberId: string;
+  verifyToken: string;
+  validateSignature: boolean;
+  logger: Logger;
+}
+
 /**
- * After a restart or a cold start, pull recent inbound messages from Twilio and process any the
- * webhook never delivered. Idempotent: each message id is processed once.
+ * WhatsApp Cloud API webhooks. GET answers Meta's subscription check; POST carries messages and
+ * delivery statuses, signed with the App Secret over the exact request bytes — so this route
+ * parses JSON itself, after verifying the signature (in its own scope, leaving the rest of the
+ * app's JSON parsing unchanged). Meta retries failed deliveries for up to 7 days, which also
+ * covers messages sent while a free-tier instance is asleep.
+ */
+export async function registerMetaWhatsAppRoutes(
+  app: FastifyInstance,
+  deps: MetaRouteDeps,
+): Promise<void> {
+  await app.register(async (scope) => {
+    scope.addContentTypeParser(
+      'application/json',
+      { parseAs: 'buffer', bodyLimit: 1024 * 1024 },
+      (_req, body, done) => done(null, body),
+    );
+
+    scope.get('/webhooks/meta/whatsapp', async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const token = q['hub.verify_token'] ?? '';
+      if (q['hub.mode'] === 'subscribe' && safeEqual(token, deps.verifyToken)) {
+        return reply
+          .code(200)
+          .type('text/plain')
+          .send(q['hub.challenge'] ?? '');
+      }
+      deps.logger.warn({}, 'rejected Meta webhook verification (wrong verify token)');
+      return reply.code(403).send();
+    });
+
+    scope.post(
+      '/webhooks/meta/whatsapp',
+      { config: { rateLimit: { max: 300, timeWindow: '1 minute' } } },
+      async (req, reply) => {
+        const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+        const signature = req.headers['x-hub-signature-256'];
+        if (
+          deps.validateSignature &&
+          !deps.transport.validateSignature(
+            raw,
+            typeof signature === 'string' ? signature : undefined,
+          )
+        ) {
+          deps.logger.warn({}, 'rejected webhook with invalid Meta signature');
+          return reply.code(403).send();
+        }
+        let payload: unknown;
+        try {
+          payload = JSON.parse(raw.toString('utf8'));
+        } catch {
+          return reply.code(400).send();
+        }
+        const { messages, statuses } = parseMetaWebhook(payload, deps.phoneNumberId);
+        for (const msg of messages) {
+          if (await deps.inbound.markSeen(msg.providerMessageId, 'whatsapp')) {
+            await deps.conversation.accept(msg);
+          }
+        }
+        for (const s of statuses) {
+          if (s.status === 'failed')
+            deps.logger.warn({ errors: s.errors }, 'whatsapp delivery failed');
+        }
+        return reply.code(200).send();
+      },
+    );
+  });
+}
+
+/**
+ * After a restart or a cold start, pull recent inbound messages from the provider (where it can
+ * list them — Twilio can) and process any the webhook never delivered. Idempotent: each message
+ * id is processed once.
  */
 export async function catchUpInbound(
   deps: {
-    transport: TwilioTransport;
+    transport: MessagingTransport;
     conversation: WhatsAppConversation;
     inbound: InboundRepo;
     logger: Logger;
   },
   sinceMs: number,
 ): Promise<number> {
+  if (!deps.transport.listRecentInbound) return 0;
   const since = new Date(Date.now() - sinceMs);
   const messages = await deps.transport.listRecentInbound(since);
   let processed = 0;

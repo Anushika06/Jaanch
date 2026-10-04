@@ -543,3 +543,108 @@ describe('several registered entities share the claimed name', () => {
     expect(report.findings.map((f) => f.reason.code)).toContain('F_DOMAIN_LOOKALIKE');
   });
 });
+
+describe('model classifications alone never produce a contradiction', () => {
+  it('drops an "endorsement" that is really registration wording', async () => {
+    const report = await investigate(
+      {
+        parts: [
+          {
+            kind: 'text',
+            text: 'Sharma Investments\nSEBI Registered Research Analyst\nReg No: INH000099991',
+          },
+        ],
+      },
+      {
+        extractor: stubExtractor({
+          endorsements: [
+            { authority: 'SEBI', object: 'tip', quote: 'SEBI Registered Research Analyst' },
+          ],
+        }),
+        sources: fakeSources(),
+      },
+    );
+    expect(report.claims.some((c) => c.type === 'REGULATOR_ENDORSEMENT')).toBe(false);
+  });
+
+  it('reports approval wording that no pattern confirms as "can\'t check"', async () => {
+    const report = await investigate(
+      { parts: [{ kind: 'text', text: 'This tip is fully verified as per SEBI norms.' }] },
+      {
+        extractor: stubExtractor({
+          endorsements: [
+            {
+              authority: 'SEBI',
+              object: 'tip',
+              quote: 'This tip is fully verified as per SEBI norms.',
+            },
+          ],
+        }),
+        sources: fakeSources(),
+      },
+    );
+    expect(verdictOf(report, 'REGULATOR_ENDORSEMENT')).toBe('CANT_CHECK');
+    expect(reasonOf(report, 'REGULATOR_ENDORSEMENT')).toBe('ENDORSE_NOT_CHECKABLE');
+  });
+
+  it('does not contradict a "guaranteed" return that only the model saw', async () => {
+    const text =
+      'ABC Research Private Limited\nSEBI Registered Research Analyst INH000099991\nExpected 30% monthly returns on our calls.';
+    const report = await investigate(
+      { parts: [{ kind: 'text', text }] },
+      {
+        extractor: stubExtractor({
+          returnPromises: [
+            {
+              kind: 'guaranteed',
+              percent: 30,
+              period: 'month',
+              product: 'stocks',
+              quote: 'Expected 30% monthly returns on our calls.',
+            },
+          ],
+        }),
+        sources: fakeSources(),
+      },
+    );
+    expect(verdictOf(report, 'GUARANTEED_RETURNS')).toBe('CANT_CHECK');
+    expect(report.findings.map((f) => f.reason.code)).not.toContain('F_GUARANTEED_RETURNS');
+  });
+});
+
+describe('binding a name to a number in a real chat screenshot layout', () => {
+  const model = (quote: string) =>
+    stubExtractor({
+      sender: { name: 'Sharma Investments', quote: 'Sharma Investments' },
+      registrationClaims: [
+        {
+          regulator: 'SEBI',
+          category: 'research_analyst',
+          number: 'INH000099991',
+          holderName: 'Sharma Investments',
+          quote,
+        },
+      ],
+    });
+
+  it('treats "name / SEBI registration line / number" as one explicit self-description', async () => {
+    const text =
+      'Sharma Investments ✔\n+91 98765 01234\nTODAY\nNamaste sir 🙏\nSharma Investments\nSEBI Registered Research Analyst\nReg No: INH000099991\n10:02';
+    const report = await investigate(
+      { parts: [{ kind: 'text', text }] },
+      { extractor: model('Reg No: INH000099991'), sources: fakeSources() },
+    );
+    expect(verdictOf(report, 'SEBI_REGISTRATION')).toBe('CONTRADICTED');
+    expect(reasonOf(report, 'SEBI_REGISTRATION')).toBe('REG_BELONGS_TO_OTHER');
+  });
+
+  it('does not bind across unrelated lines', async () => {
+    const text = 'Sharma Investments\nDaily calls in F&O for serious traders\nReg No: INH000099991';
+    const report = await investigate(
+      { parts: [{ kind: 'text', text }] },
+      { extractor: model('Reg No: INH000099991'), sources: fakeSources() },
+    );
+    expect(verdictOf(report, 'SEBI_REGISTRATION')).toBe('CANT_CHECK');
+    expect(reasonOf(report, 'SEBI_REGISTRATION')).toBe('REG_NAME_MISMATCH_INFERRED');
+  });
+});

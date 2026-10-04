@@ -115,6 +115,37 @@ describe('NimClient', () => {
     expect(seen[0]!.chat_template_kwargs).toEqual({ enable_thinking: false });
   });
 
+  it('abandons an attempt stuck in the queue and retries within the overall budget', async () => {
+    let n = 0;
+    vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
+      n += 1;
+      if (n === 1) {
+        // First request never answers until it is aborted (a request stuck in the queue).
+        return new Promise<Response>((_, reject) =>
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          ),
+        );
+      }
+      return completion('second attempt');
+    });
+    const client = new NimClient({
+      apiKey: 'k',
+      baseUrl: 'https://nim.test/v1',
+      timeoutMs: 60_000,
+    });
+    const started = Date.now();
+    const out = await client.chat({
+      model: 'meta/muse-glimmer-30b',
+      messages: [{ role: 'user', content: 'x' }],
+      attemptTimeoutMs: 200,
+      signal: AbortSignal.timeout(10_000),
+    });
+    expect(out).toBe('second attempt');
+    expect(n).toBe(2);
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
   it('reports retired models', async () => {
     vi.stubGlobal('fetch', async () => new Response('gone', { status: 410 }));
     const client = new NimClient({ apiKey: 'k', baseUrl: 'https://nim.test/v1', timeoutMs: 5_000 });
@@ -141,5 +172,63 @@ describe('screenshot preparation', () => {
 
   it('merges tile transcripts without duplicating overlapped lines', () => {
     expect(mergeTileTexts(['A\nB\nC', 'C\nD'])).toBe('A\nB\nC\nD');
+  });
+});
+
+describe('tail latency', () => {
+  it('sends a hedged duplicate when the first attempt is slow, and cancels the loser', async () => {
+    const signals: AbortSignal[] = [];
+    vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
+      signals.push(init.signal!);
+      if (signals.length === 1) {
+        // The first request sits in the queue until it is cancelled.
+        return new Promise<Response>((_, reject) =>
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          ),
+        );
+      }
+      return completion('from the hedge');
+    });
+    const client = new NimClient({
+      apiKey: 'k',
+      baseUrl: 'https://nim.test/v1',
+      timeoutMs: 60_000,
+    });
+    const started = Date.now();
+    const out = await client.chat({
+      model: 'nvidia/nemotron-3.5-lightning-30b-a3b',
+      messages: [{ role: 'user', content: 'x' }],
+      attemptTimeoutMs: 30_000,
+      hedgeAfterMs: 100,
+      signal: AbortSignal.timeout(10_000),
+    });
+    expect(out).toBe('from the hedge');
+    expect(signals).toHaveLength(2);
+    expect(signals[0]!.aborted).toBe(true); // the stuck request was cancelled
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+
+  it('gives the schema in the prompt when decoding is not schema-constrained', async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+      return completion('{"investmentRelated": false}');
+    });
+    const client = new NimClient({ apiKey: 'k', baseUrl: 'https://nim.test/v1', timeoutMs: 5_000 });
+    const out = await client.chatJson({
+      model: 'nvidia/nemotron-3.5-lightning-30b-a3b',
+      schema: ModelExtraction,
+      modes: ['prompt'],
+      messages: [
+        { role: 'system', content: 'Extract claims.' },
+        { role: 'user', content: 'hello' },
+      ],
+    });
+    expect(out.investmentRelated).toBe(false);
+    const system = (bodies[0]!.messages as Array<{ role: string; content: string }>)[0]!;
+    expect(system.content).toMatch(/^Extract claims\.\n\nReply with only one JSON object/);
+    expect(system.content).toContain('"registrationClaims"');
+    expect(bodies[0]!.response_format).toBeUndefined();
   });
 });

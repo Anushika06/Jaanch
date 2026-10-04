@@ -21,7 +21,7 @@ numbers work, what SEBI's rules say about returns and payments — in English, o
 ## What Jaanch does
 
 Forward the message (or a screenshot, link or voice note) to Jaanch on WhatsApp, or paste it on
-the web. In about 30 seconds Jaanch returns a report:
+the web. Usually within a minute, Jaanch returns a report:
 
 - **Every claim, one by one**, with a stamp: **CONTRADICTED**, **MATCHES**, **NOT FOUND** or
   **CAN'T CHECK**.

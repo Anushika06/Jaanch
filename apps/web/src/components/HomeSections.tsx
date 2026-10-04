@@ -49,6 +49,7 @@ export function WhatsAppPanel() {
         </a>
       )}
       {wa.sandbox && <p className="fineprint">{t('waSandbox')}</p>}
+      {wa.testNumber && <p className="fineprint">{t('waTestNumber')}</p>}
     </section>
   );
 }

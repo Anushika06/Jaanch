@@ -344,6 +344,16 @@ export class InvestigationEngine {
             unreadParts.push({ partIndex: i, kind: 'image', reason: 'reader_unavailable' });
             continue;
           }
+          // The independent identifier re-read doesn't depend on the transcript, so both reads run
+          // concurrently. If the re-read fails, the transcript's own uncertainty flags still apply.
+          const secondRead =
+            this.options.ocrConsensus && reader.readIdentifiers
+              ? withTimeout(
+                  (s) => reader.readIdentifiers!(bytes, part.mime, s),
+                  this.options.modelTimeoutMs,
+                  signal,
+                ).catch(() => null)
+              : Promise.resolve(null);
           const reading = await withTimeout(
             (s) => reader.readImage(bytes, part.mime, s),
             this.options.modelTimeoutMs,
@@ -355,14 +365,8 @@ export class InvestigationEngine {
             continue;
           }
           const unclear = [...reading.unclear];
-          if (this.options.ocrConsensus && reader.readIdentifiers) {
-            const second = await withTimeout(
-              (s) => reader.readIdentifiers!(bytes, part.mime, s),
-              this.options.modelTimeoutMs,
-              signal,
-            ).catch(() => null);
-            if (second) unclear.push(...consensusDisagreements(text, second));
-          }
+          const second = await secondRead;
+          if (second) unclear.push(...consensusDisagreements(text, second));
           segments.push({
             id,
             partIndex: i,

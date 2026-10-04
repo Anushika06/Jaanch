@@ -23,6 +23,8 @@ import {
   WA_SEND_JOB,
   WhatsAppConversation,
 } from './channels/whatsapp/conversation.js';
+import { MetaTransport } from './channels/whatsapp/meta.js';
+import type { MessagingTransport } from './channels/whatsapp/transport.js';
 import { TwilioTransport } from './channels/whatsapp/twilio.js';
 import type { Config } from './config.js';
 import { Secrets } from './crypto.js';
@@ -52,7 +54,7 @@ export interface Runtime {
   llm: LlmBundle | null;
   engine: InvestigationEngine;
   service: InvestigationService;
-  transport: TwilioTransport | null;
+  transport: MessagingTransport | null;
   conversation: WhatsAppConversation | null;
   worker: Worker;
   close(): Promise<void>;
@@ -165,8 +167,12 @@ export async function createRuntime(config: Config, logger: Logger): Promise<Run
     onFailed: async (_id, delivery, locale) => conversation?.deliverFailure(delivery, locale),
   });
 
-  let transport: TwilioTransport | null = null;
-  if (config.twilioEnabled) {
+  let transport: MessagingTransport | null = null;
+  // Twilio's sandbox allows one message per 3 s; the Cloud API has no such limit, but replies are
+  // still sent one at a time so they arrive in order.
+  let minSendIntervalMs = config.TWILIO_MIN_SEND_INTERVAL_MS;
+  let deleteInboundMedia = config.TWILIO_DELETE_INBOUND_MEDIA;
+  if (config.whatsappProvider === 'twilio') {
     transport = new TwilioTransport({
       accountSid: config.TWILIO_ACCOUNT_SID!,
       authToken: config.TWILIO_AUTH_TOKEN!,
@@ -174,6 +180,18 @@ export async function createRuntime(config: Config, logger: Logger): Promise<Run
       messagingServiceSid: config.TWILIO_MESSAGING_SERVICE_SID,
       statusCallbackUrl: `${config.PUBLIC_BASE_URL}/webhooks/twilio/status`,
     });
+  } else if (config.whatsappProvider === 'meta') {
+    transport = new MetaTransport({
+      accessToken: config.META_WA_ACCESS_TOKEN!,
+      phoneNumberId: config.META_WA_PHONE_NUMBER_ID!,
+      appSecret: config.META_APP_SECRET,
+      graphVersion: config.META_GRAPH_VERSION,
+      displayNumber: config.META_WA_DISPLAY_NUMBER,
+    });
+    minSendIntervalMs = Math.min(minSendIntervalMs, 300);
+    deleteInboundMedia = false; // received media can't be deleted through the Cloud API
+  }
+  if (transport) {
     conversation = new WhatsAppConversation({
       transport,
       sessions: repos.sessions,
@@ -190,8 +208,8 @@ export async function createRuntime(config: Config, logger: Logger): Promise<Run
         mediaTtlMinutes: config.MEDIA_TTL_MINUTES,
         reportTtlDays: config.REPORT_TTL_DAYS,
         investigationsPerHour: config.WHATSAPP_INVESTIGATIONS_PER_HOUR,
-        deleteInboundMedia: config.TWILIO_DELETE_INBOUND_MEDIA,
-        minSendIntervalMs: config.TWILIO_MIN_SEND_INTERVAL_MS,
+        deleteInboundMedia,
+        minSendIntervalMs,
         webBaseUrl: config.webBaseUrl,
       },
     });

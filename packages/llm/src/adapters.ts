@@ -25,6 +25,25 @@ import {
 
 const QUALITY_RANK = { good: 0, partial: 1, poor: 2, unreadable: 3 } as const;
 
+/**
+ * Per-attempt limits, about twice the slowest normal response measured on the hosted endpoints
+ * (2026-10-04: screenshot 12–26 s, identifier re-read 7–11 s, extraction 2–13 s). A request
+ * still queued after that is abandoned and retried; the engine's per-stage timeout caps the total.
+ */
+const ATTEMPT_TIMEOUT_MS = {
+  readImage: 45_000,
+  readIdentifiers: 25_000,
+  extract: 25_000,
+  narrate: 15_000,
+} as const;
+/** Send a duplicate request when the first hasn't answered by roughly the slow end of normal. */
+const HEDGE_AFTER_MS = {
+  readImage: 30_000,
+  readIdentifiers: 15_000,
+  extract: 15_000,
+  narrate: 8_000,
+} as const;
+
 /** Merge per-tile transcripts, dropping lines duplicated by the tile overlap. */
 export function mergeTileTexts(texts: string[]): string {
   const out: string[] = [];
@@ -69,6 +88,8 @@ export class NimReader implements Reader {
           schema: ModelImageReading,
           maxTokens: 3000,
           signal,
+          attemptTimeoutMs: ATTEMPT_TIMEOUT_MS.readImage,
+          hedgeAfterMs: HEDGE_AFTER_MS.readImage,
           messages: [
             { role: 'system', content: READ_IMAGE_SYSTEM },
             {
@@ -114,6 +135,8 @@ export class NimReader implements Reader {
         schema: ModelIdentifierReading,
         maxTokens: 800,
         signal,
+        attemptTimeoutMs: ATTEMPT_TIMEOUT_MS.readIdentifiers,
+        hedgeAfterMs: HEDGE_AFTER_MS.readIdentifiers,
         messages: [
           { role: 'system', content: READ_IMAGE_SYSTEM },
           {
@@ -146,6 +169,11 @@ export class NimExtractor implements Extractor {
       schema: ModelExtraction,
       maxTokens: 3000,
       signal,
+      attemptTimeoutMs: ATTEMPT_TIMEOUT_MS.extract,
+      hedgeAfterMs: HEDGE_AFTER_MS.extract,
+      // The extraction schema is large; schema-constrained decoding can stall on a cold host while
+      // the grammar compiles, so the schema is given in the prompt first (output is validated).
+      modes: ['prompt', 'json_object', 'json_schema'],
       messages: [
         { role: 'system', content: EXTRACT_SYSTEM },
         { role: 'user', content: extractUser(transcript.slice(0, 16_000)) },
@@ -167,6 +195,8 @@ export class NimNarrator implements Narrator {
       maxTokens: 400,
       temperature: 0.2,
       signal,
+      attemptTimeoutMs: ATTEMPT_TIMEOUT_MS.narrate,
+      hedgeAfterMs: HEDGE_AFTER_MS.narrate,
       messages: [
         { role: 'system', content: narrateSystem(facts.locale) },
         { role: 'user', content: narrateUser(facts) },

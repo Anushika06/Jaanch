@@ -37,7 +37,7 @@ Language models only read and (optionally) summarise; they never decide.</p>
     U2[Investor on the web]
   end
   subgraph Providers
-    TW[Twilio WhatsApp&lt;br/&gt;sandbox / sender]
+    TW[WhatsApp provider&lt;br/&gt;Meta Cloud API or Twilio]
     NIM[NVIDIA NIM&lt;br/&gt;vision + text models]
     ASR[NVIDIA Riva ASR&lt;br/&gt;gRPC]
   end
@@ -93,7 +93,7 @@ Language models only read and (optionally) summarise; they never decide.</p>
 </tr>
 <tr>
 <td><code>apps/server</code></td>
-<td>Composition root: configuration, Fastify HTTP server, web API, Twilio WhatsApp channel, event-driven worker, ingestion and operations CLI.</td>
+<td>Composition root: configuration, Fastify HTTP server, web API, WhatsApp channel (Meta Cloud API and Twilio transports), event-driven worker, ingestion and operations CLI.</td>
 </tr>
 <tr>
 <td><code>apps/web</code></td>
@@ -201,21 +201,23 @@ shorteners and raw-IP links are warnings with evidence.</p>
 <li><strong>Web</strong> (<code>apps/server/src/channels/web</code>): <code>POST /api/v1/investigations</code> (multipart or JSON)
 returns an id and a one-time owner token; the client polls <code>GET /api/v1/investigations/:id</code>
 for progress and the report view; summary, recovery and delete endpoints complete the flow.</li>
-<li><strong>WhatsApp</strong> (<code>apps/server/src/channels/whatsapp</code>): a <code>MessagingTransport</code> interface with a
-Twilio implementation, and provider-independent conversation logic.</li>
+<li><strong>WhatsApp</strong> (<code>apps/server/src/channels/whatsapp</code>): a <code>MessagingTransport</code> interface with
+Meta Cloud API and Twilio implementations (<code>WHATSAPP_PROVIDER</code>), and provider-independent
+conversation logic. The diagram shows Meta; Twilio differs only in its signature scheme
+(<code>X-Twilio-Signature</code>), its empty-TwiML answer and its one-message-per-3-seconds sandbox pacing.</li>
 </ul>
 <pre class="mermaid">sequenceDiagram
   participant P as Person (WhatsApp)
-  participant T as Twilio
+  participant T as WhatsApp (Meta)
   participant W as Webhook
   participant Q as Job queue
   participant C as Conversation
   participant E as Engine
   P-&gt;&gt;T: forwards message + screenshots
   T-&gt;&gt;W: POST (signed)
-  W-&gt;&gt;W: verify X-Twilio-Signature, de-duplicate MessageSid
+  W-&gt;&gt;W: verify X-Hub-Signature-256, de-duplicate message id
   W-&gt;&gt;Q: enqueue whatsapp.inbound (encrypted)
-  W--&gt;&gt;T: 200 &lt;Response/&gt; (immediately)
+  W--&gt;&gt;T: 200 (immediately)
   Q-&gt;&gt;C: inbound: command? else download media, validate, store briefly
   C-&gt;&gt;Q: debounce whatsapp.collect (5 s window, 20 s max)
   C-&gt;&gt;Q: whatsapp.send "Checking…"
@@ -223,7 +225,7 @@ Twilio implementation, and provider-independent conversation logic.</li>
   Q-&gt;&gt;E: investigation.run
   E--&gt;&gt;Q: report stored
   Q-&gt;&gt;C: render for WhatsApp (≤1,500 chars per message)
-  C-&gt;&gt;T: send (paced: 1 message / 3 s)
+  C-&gt;&gt;T: send (one at a time, in order)
   T-&gt;&gt;P: report + link to full evidence</pre><p>Commands are recognised only when the whole message is a command word — <code>HELP</code>, <code>HINDI</code>,
 <code>ENGLISH</code>, <code>PAID</code>, <code>DELETE</code>, <code>REPORT</code> (and Hindi equivalents) — so a forwarded pitch is never
 mistaken for a command.</p>
@@ -310,7 +312,7 @@ list changes rarely) are marked stale in the report.</p>
 </tr>
 <tr>
 <td>Webhook missed during a cold start</td>
-<td>Boot-time catch-up lists recent inbound messages from Twilio and processes any not yet seen</td>
+<td>Meta retries delivery until it succeeds (up to 7 days); with Twilio, a boot-time catch-up lists recent inbound messages and processes any not yet seen</td>
 </tr>
 <tr>
 <td>Worker crash mid-job</td>
@@ -318,7 +320,7 @@ list changes rarely) are marked stale in the report.</p>
 </tr>
 <tr>
 <td>WhatsApp send fails mid-sequence</td>
-<td>Only unsent messages are retried (no duplicates); permanent provider errors (user left sandbox, 24-hour window) are dropped and logged</td>
+<td>Only unsent messages are retried (no duplicates); permanent provider errors (recipient not registered for the test number, more than 24 hours since the user wrote, expired token) are dropped and logged</td>
 </tr>
 </tbody></table>
 <h2>Deployment shape</h2>

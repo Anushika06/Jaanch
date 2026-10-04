@@ -5,10 +5,10 @@
 ```mermaid
 flowchart TD
   A[Receives an investment pitch] --> B{First time?}
-  B -- yes --> C[Saves the Jaanch number and sends the join message]
+  B -- yes --> C[Saves the Jaanch number and sends HELP]
   C --> D[Forwards the message, screenshots or voice note]
   B -- no --> D
-  D --> E["Jaanch: 'Checking… about 30 seconds'"]
+  D --> E["Jaanch: 'Checking… usually under a minute'"]
   E --> F[Report: headline, claim stamps, warnings, could-not-check, next steps, link to full report]
   F --> G{What next?}
   G -- reads the evidence --> H[Opens the link: full web report]
@@ -17,9 +17,10 @@ flowchart TD
   G -- done --> K[Sends DELETE: reports and settings erased]
 ```
 
-**Joining (sandbox only).** Save the sandbox number shown on the web page and send the join
-phrase (for example `join letter-now`). Twilio confirms. The sandbox session lasts 3 days; after
-that, send the join phrase again. A production WhatsApp number would not need this step.
+**Getting started.** Save the WhatsApp number shown on the web page (or tap **Open WhatsApp**,
+which prepares a `HELP` message) and send anything — Jaanch can only reply after you write first.
+During testing this is Meta's free test number, which answers only the phone numbers registered in
+the Meta app (up to 5); a production number would answer everyone.
 
 **Sending content.** Forward the text, send up to 5 screenshots, or a voice note. Items sent
 within a few seconds of each other are investigated together. Jaanch acknowledges immediately.

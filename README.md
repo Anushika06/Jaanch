@@ -62,10 +62,10 @@ flowchart LR
 
 ## Interfaces
 
-| Channel                             | What it's for                                                                                                                                      |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **WhatsApp** (Twilio sandbox today) | The primary channel: forward the pitch, get verdicts + next steps in ~30 s, `PAID` / `HINDI` / `DELETE` commands                                   |
-| **Web**                             | Full evidence report, Hindi/English switch, screenshot upload, "I already paid" page, shareable link — and the fallback if WhatsApp is unavailable |
+| Channel                                                                | What it's for                                                                                                                                      |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WhatsApp** (Meta Cloud API test number today; Twilio also supported) | The primary channel: forward the pitch, get verdicts + next steps, usually within a minute; `PAID` / `HINDI` / `DELETE` commands                   |
+| **Web**                                                                | Full evidence report, Hindi/English switch, screenshot upload, "I already paid" page, shareable link — and the fallback if WhatsApp is unavailable |
 
 Both are thin adapters over the same engine; the web renders server-built views and contains no
 investigation logic.
@@ -79,7 +79,7 @@ packages/core      engine: schemas, extraction, claims, adjudication, rules, tem
 packages/db        Postgres (node-postgres in production, embedded PGlite in dev/tests), queue
 packages/sources   SEBI registers (Excel export + live + inactive), RBI Alert List, RDAP
 packages/llm       NVIDIA NIM reader/extractor/narrator, Riva speech-to-text, model probe
-apps/server        Fastify API, Twilio WhatsApp channel, event-driven worker, CLI
+apps/server        Fastify API, WhatsApp channel (Meta Cloud API / Twilio), event-driven worker, CLI
 apps/web           React web app
 ```
 
@@ -91,7 +91,7 @@ Details: [docs/architecture.md](docs/architecture.md) · decisions and trade-off
 - No overall score; no accusations ("the message says X, the record shows Y"); no advice.
 - Screenshots and voice notes deleted right after reading; reports kept 7 days or deleted on
   request; no phone numbers or IPs stored (HMACs only); the requester's own number is redacted.
-- Twilio signatures verified; uploads validated by content; links in messages are never opened.
+- WhatsApp webhook signatures verified; uploads validated by content; links in messages are never opened.
 - **Prototype caveat:** screenshots are read by NVIDIA's hosted API catalog, whose trial terms
   don't allow production use or personal data.
 
@@ -103,7 +103,7 @@ Requirements: Node.js 22+, pnpm 10 (`corepack enable`). Optional: Docker, cloudf
 
 ```bash
 pnpm install
-cp .env.example .env     # add NVIDIA_API_KEY (and Twilio values for WhatsApp)
+cp .env.example .env     # add NVIDIA_API_KEY (and the META_* values for WhatsApp)
 pnpm dev                 # API http://localhost:8787 · web http://localhost:5173
 ```
 
@@ -124,24 +124,25 @@ SOURCE_MODE=fixture pnpm dev                       # offline, FICTIONAL data (cl
 
 The essentials (full list with comments in [.env.example](.env.example)):
 
-| Variable                                                                                      | Purpose                                                  |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `NVIDIA_API_KEY`                                                                              | Reading screenshots, extracting claims, voice notes      |
-| `DATABASE_URL`                                                                                | Postgres in production (empty = embedded database)       |
-| `APP_SECRET`                                                                                  | Keys for hashing and encryption (required in production) |
-| `PUBLIC_BASE_URL` / `WEB_BASE_URL`                                                            | Public URLs for webhook signatures and report links      |
-| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`, `TWILIO_SANDBOX_JOIN_CODE` | WhatsApp channel                                         |
-| `LLM_VISION_MODEL`, `LLM_TEXT_MODEL`                                                          | Override model choice (hosted models change often)       |
+| Variable                                                                                     | Purpose                                                  |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `NVIDIA_API_KEY`                                                                             | Reading screenshots, extracting claims, voice notes      |
+| `DATABASE_URL`                                                                               | Postgres in production (empty = embedded database)       |
+| `APP_SECRET`                                                                                 | Keys for hashing and encryption (required in production) |
+| `PUBLIC_BASE_URL` / `WEB_BASE_URL`                                                           | Public URLs for webhook signatures and report links      |
+| `META_WA_ACCESS_TOKEN`, `META_WA_PHONE_NUMBER_ID`, `META_APP_SECRET`, `META_WA_VERIFY_TOKEN` | WhatsApp channel (Meta Cloud API; Twilio also supported) |
+| `LLM_VISION_MODEL`, `LLM_TEXT_MODEL`                                                         | Override model choice (hosted models change often)       |
 
-### WhatsApp (Twilio sandbox) locally
+### WhatsApp locally (Meta test number)
 
 ```bash
 pnpm tunnel   # prints https://<random>.trycloudflare.com
 ```
 
-Set `PUBLIC_BASE_URL` to that URL, restart, and in Twilio's sandbox settings set _When a message
-comes in_ to `<tunnel>/webhooks/twilio/whatsapp` (POST). Join the sandbox from your phone and send
-`HELP`. Step-by-step: [docs/deployment.md](docs/deployment.md#6-whatsapp-twilio-sandbox-and-webhook).
+Set `PUBLIC_BASE_URL` to that URL and restart. In the Meta app, **WhatsApp → Configuration →
+Webhook**, set the callback URL to `<tunnel>/webhooks/meta/whatsapp` with your
+`META_WA_VERIFY_TOKEN`, and subscribe to the `messages` field. From a registered phone, send
+`HELP` to the test number. Step-by-step: [docs/deployment.md](docs/deployment.md#6-whatsapp-meta-cloud-api).
 
 ### Web
 
@@ -176,15 +177,15 @@ A four-minute product demo script with dialogue, screen actions and backup paths
 
 ## Documentation
 
-| Document                                                                             |                                                     |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| [Product explainer](docs/product-explainer.md) ([HTML](docs/product-explainer.html)) | What Jaanch is and isn't                            |
-| [Architecture](docs/architecture.md) ([HTML](docs/architecture.html))                | Components, pipeline, data, failure behaviour       |
-| [User workflows](docs/user-workflow.md) ([HTML](docs/user-workflow.html))            | WhatsApp, web, "I already paid"                     |
-| [Demo video script](docs/demo-video-script.md) ([HTML](docs/demo-video-script.html)) | Production script                                   |
-| [Trust and safety](docs/trust-and-safety.md)                                         | AI safety, privacy, security, limitations           |
-| [Technical decisions](docs/technical-decisions.md)                                   | Alternatives and reasons                            |
-| [Deployment](docs/deployment.md)                                                     | Free-tier deployment, Twilio setup, troubleshooting |
+| Document                                                                             |                                                              |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| [Product explainer](docs/product-explainer.md) ([HTML](docs/product-explainer.html)) | What Jaanch is and isn't                                     |
+| [Architecture](docs/architecture.md) ([HTML](docs/architecture.html))                | Components, pipeline, data, failure behaviour                |
+| [User workflows](docs/user-workflow.md) ([HTML](docs/user-workflow.html))            | WhatsApp, web, "I already paid"                              |
+| [Demo video script](docs/demo-video-script.md) ([HTML](docs/demo-video-script.html)) | Production script                                            |
+| [Trust and safety](docs/trust-and-safety.md)                                         | AI safety, privacy, security, limitations                    |
+| [Technical decisions](docs/technical-decisions.md)                                   | Alternatives and reasons                                     |
+| [Deployment](docs/deployment.md)                                                     | Free-tier deployment, WhatsApp (Meta) setup, troubleshooting |
 
 ## Roadmap
 

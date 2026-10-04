@@ -10,7 +10,13 @@ import fastifyStatic from '@fastify/static';
 import { sweepExpired } from '@jaanch/db';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerWebRoutes } from './channels/web/routes.js';
-import { catchUpInbound, registerWhatsAppRoutes } from './channels/whatsapp/routes.js';
+import { MetaTransport } from './channels/whatsapp/meta.js';
+import {
+  catchUpInbound,
+  registerMetaWhatsAppRoutes,
+  registerWhatsAppRoutes,
+} from './channels/whatsapp/routes.js';
+import { TwilioTransport } from './channels/whatsapp/twilio.js';
 import { newToken, safeEqual } from './crypto.js';
 import type { Runtime } from './runtime.js';
 import { runIngestion, type IngestTarget } from './services/ingestion.js';
@@ -123,13 +129,23 @@ export async function buildApp(rt: Runtime): Promise<FastifyInstance> {
     meta: () => publicMeta(rt),
     sourcesStatus: () => sourcesStatus(rt),
   });
-  if (rt.transport && rt.conversation) {
+  if (rt.transport instanceof TwilioTransport && rt.conversation) {
     await registerWhatsAppRoutes(app, {
       transport: rt.transport,
       conversation: rt.conversation,
       inbound: rt.repos.inbound,
       publicBaseUrl: config.PUBLIC_BASE_URL,
       validateSignature: config.TWILIO_VALIDATE_SIGNATURE,
+      logger: rt.logger,
+    });
+  } else if (rt.transport instanceof MetaTransport && rt.conversation) {
+    await registerMetaWhatsAppRoutes(app, {
+      transport: rt.transport,
+      conversation: rt.conversation,
+      inbound: rt.repos.inbound,
+      phoneNumberId: config.META_WA_PHONE_NUMBER_ID!,
+      verifyToken: config.META_WA_VERIFY_TOKEN!,
+      validateSignature: config.META_VALIDATE_SIGNATURE,
       logger: rt.logger,
     });
   }

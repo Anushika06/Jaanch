@@ -80,9 +80,10 @@ describe('webhook security', () => {
     const p = params('help');
     await post(p);
     await post(p);
-    await waitFor(async () => sent.length >= 2);
+    await waitFor(async () => sent.length >= 1);
     await new Promise((r) => setTimeout(r, 300));
-    expect(sent).toHaveLength(2); // welcome + help, not four
+    expect(sent).toHaveLength(1); // one combined welcome + help reply, not two
+    expect(sent[0]!.body).toContain('PAID');
   });
 });
 
@@ -116,8 +117,9 @@ describe('conversation', () => {
     await waitFor(async () => sent.some((m) => m.body.includes('हिंदी')));
     sent = [];
     await post(params('मदद'));
-    await waitFor(async () => sent.length >= 2);
+    await waitFor(async () => sent.length >= 1);
     expect(sent[0]!.body).toMatch(/नमस्ते/);
+    expect(sent[0]!.body).toMatch(/PAID/); // help text is in the same message
     await post(params('english'));
     await waitFor(async () => sent.some((m) => m.body.includes('English')));
   });

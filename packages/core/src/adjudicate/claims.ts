@@ -64,7 +64,10 @@ export function adjudicateReturns(
   }
 
   const category = claimedRegisteredCategory(claims, registrations);
-  if (category) {
+  // A rule contradicts only wording that deterministic patterns confirm. A promise identified by
+  // the model alone may be a misreading, so it stays "can't check" and raises no warning.
+  const confirmed = claim.origin !== 'model';
+  if (category && confirmed) {
     const rules: RuleId[] =
       category === 'BROKER'
         ? ['BROKER_NO_GUARANTEED_RETURN_SCHEMES']
@@ -85,6 +88,7 @@ export function adjudicateReturns(
       ruleIds: ['ASSURED_RETURN_SCHEMES_PROHIBITED'],
     });
   }
+  if (!confirmed) return;
   ctx.finding('guaranteed-returns', {
     kind: 'rule',
     severity: 'high',
@@ -107,6 +111,15 @@ export function adjudicateEndorsement(
       verdict: 'CANT_CHECK',
       reason: reason('ENDORSE_APP_OR_GROUP', { authority: claim.authority, object }),
       ruleIds: ['CAUTION_SOCIAL_MEDIA_LURES'],
+    });
+    return;
+  }
+  // Approval wording the model found but no deterministic pattern confirms: report, don't rule.
+  if (claim.origin === 'model') {
+    ctx.result({
+      claimId: claim.id,
+      verdict: 'CANT_CHECK',
+      reason: reason('ENDORSE_NOT_CHECKABLE', { authority: `@auth.${claim.authority}` }),
     });
     return;
   }
@@ -267,7 +280,7 @@ export function adjudicateApp(
 
 export function adjudicateAccess(ctx: AdjudicationContext, claim: SpecialAccessClaim): void {
   const kind = `@access.${claim.kind}`;
-  if (claim.kind === 'fpi_account') {
+  if (claim.kind === 'fpi_account' && claim.origin !== 'model') {
     ctx.result({
       claimId: claim.id,
       verdict: 'CONTRADICTED',
@@ -288,7 +301,7 @@ export function adjudicateAccess(ctx: AdjudicationContext, claim: SpecialAccessC
       ? ['CAUTION_VIP_GROUPS']
       : claim.kind === 'otc'
         ? []
-        : claim.kind === 'institutional_account'
+        : claim.kind === 'institutional_account' || claim.kind === 'fpi_account'
           ? ['CAUTION_FAKE_INSTITUTIONAL_ACCOUNTS', 'CAUTION_SOCIAL_MEDIA_LURES']
           : ['CAUTION_SOCIAL_MEDIA_LURES'];
   ctx.result({

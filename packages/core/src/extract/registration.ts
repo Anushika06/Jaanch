@@ -81,11 +81,27 @@ const DIGITISH = '[0-9OoDQIl|iSsBZzG]';
 /**
  * Single-letter SEBI prefixes followed by nine digit-like characters, tolerating separators and
  * OCR misreads. Requiring nine digit-like characters keeps ordinary words ("INDIA") out.
+ * Separators never cross a line break: in chat screenshots the next line is often a timestamp.
  */
 const SEBI_LETTER_NUMBER = new RegExp(
-  `(?<![A-Za-z0-9])([I1l][Nn][HAZPMRDBFEhazpmrdbfe])[\\s:.\\-–]{0,3}((?:${DIGITISH}[\\s\\-]?){8,10}${DIGITISH})(?![A-Za-z0-9])`,
+  `(?<![A-Za-z0-9])([I1l][Nn][HAZPMRDBFEhazpmrdbfe])[ \\t:.\\-–]{0,3}((?:${DIGITISH}[ \\t\\-]?){8,10}${DIGITISH})(?![A-Za-z0-9])`,
   'g',
 );
+
+/**
+ * "INH000011431 10:02": when the nine digits are complete at a separator, what follows is not
+ * part of the number (typically a timestamp or a phone number on the same line).
+ */
+function trimAtNinthDigit(body: string): string {
+  const groups = body.split(/[ \t-]+/).filter(Boolean);
+  let count = 0;
+  for (let i = 0; i < groups.length - 1; i++) {
+    count += groups[i]!.length;
+    if (count === 9) return groups.slice(0, i + 1).join(' ');
+    if (count > 9) break;
+  }
+  return body;
+}
 const DP_NUMBER =
   /(?<![A-Za-z0-9])IN[\s-]?DP[\s-]?(?:(NSDL|CDSL)[\s-]?)?(\d{1,5})[\s-](\d{4}|\d{2})(?![0-9])/gi;
 const MF_NUMBER = /(?<![A-Za-z0-9])MF\s?\/\s?(\d{3})\s?\/\s?(\d{2})\s?\/\s?(\d{1,2})(?![0-9])/g;
@@ -146,11 +162,12 @@ export function findRegistrationNumbers(text: string): RegistrationCandidate[] {
     if ((prefix === 'INE' || prefix === 'INF' || prefix === 'INB') && /[^0-9\s-]/.test(m[2]!))
       continue;
     const prefixReinterpreted = prefixRaw[0] !== 'I' || prefixRaw[1] !== 'N';
-    const { digits, reinterpreted } = readDigits(m[2]!);
+    const body = trimAtNinthDigit(m[2]!);
+    const { digits, reinterpreted } = readDigits(body);
     const normalized = `${prefix}${digits}`;
     const { scheme, formatValid } = schemeForNormalized(normalized);
     found.push({
-      raw: m[0].trim(),
+      raw: (m[0].slice(0, m[0].length - m[2]!.length) + body).trim(),
       normalized,
       scheme,
       formatValid,

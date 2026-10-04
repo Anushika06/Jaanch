@@ -315,8 +315,8 @@ export const EN = {
   WA_WELCOME:
     "Namaste! I'm Jaanch. Forward me an investment message, screenshot, link or voice note, and I'll check its claims against official records (SEBI registers and rules).\n\nI don't give investment advice. Reply HINDI for Hindi.",
   WA_HELP:
-    'How to use Jaanch:\n• Forward the message or send screenshots (up to 5)\n• Wait about 30 seconds for the report\n• Reply PAID if you already sent money\n• Reply HINDI / ENGLISH to switch language\n• Reply DELETE to erase your data',
-  WA_ACK: 'Checking… This takes about 30 seconds.',
+    'How to use Jaanch:\n• Forward the message or send screenshots (up to 5)\n• The report usually comes within a minute\n• Reply PAID if you already sent money\n• Reply HINDI / ENGLISH to switch language\n• Reply DELETE to erase your data',
+  WA_ACK: 'Checking… This usually takes under a minute.',
   WA_ACK_COLLECTING:
     'Got it. Send any more screenshots now — I will start checking in a few seconds.',
   WA_LANG_SET: 'Okay, I will reply in English.',

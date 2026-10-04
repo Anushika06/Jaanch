@@ -255,3 +255,17 @@ describe('messaging links and handles', () => {
     expect(findHandles('mortgage rates by @someone_x')).toEqual([]);
   });
 });
+
+describe('registration numbers next to chat timestamps', () => {
+  const regs = (t: string) => findRegistrationNumbers(t).map((r) => [r.normalized, r.formatValid]);
+  it('does not join a number with the timestamp on the next line', () => {
+    expect(regs('Reg No: INH000011431\n10:02')).toEqual([['INH000011431', true]]);
+  });
+  it('stops at the ninth digit when a timestamp follows on the same line', () => {
+    expect(regs('Reg No: INH000011431 10:02')).toEqual([['INH000011431', true]]);
+    expect(regs('Reg No: INH 000 011 431 10:02')).toEqual([['INH000011431', true]]);
+  });
+  it('still flags a genuinely malformed number', () => {
+    expect(regs('Reg No: INH00001143110')).toEqual([['INH00001143110', false]]);
+  });
+});

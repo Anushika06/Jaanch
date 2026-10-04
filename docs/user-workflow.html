@@ -30,18 +30,19 @@
 <h2>1. WhatsApp: forward a message</h2>
 <pre class="mermaid">flowchart TD
   A[Receives an investment pitch] --&gt; B{First time?}
-  B -- yes --&gt; C[Saves the Jaanch number and sends the join message]
+  B -- yes --&gt; C[Saves the Jaanch number and sends HELP]
   C --&gt; D[Forwards the message, screenshots or voice note]
   B -- no --&gt; D
-  D --&gt; E["Jaanch: 'Checking… about 30 seconds'"]
+  D --&gt; E["Jaanch: 'Checking… usually under a minute'"]
   E --&gt; F[Report: headline, claim stamps, warnings, could-not-check, next steps, link to full report]
   F --&gt; G{What next?}
   G -- reads the evidence --&gt; H[Opens the link: full web report]
   G -- already paid --&gt; I["Sends PAID: 1930, cybercrime.gov.in, bank, UPI complaint, evidence summary link"]
   G -- prefers Hindi --&gt; J[Sends HINDI: all replies in Hindi]
-  G -- done --&gt; K[Sends DELETE: reports and settings erased]</pre><p><strong>Joining (sandbox only).</strong> Save the sandbox number shown on the web page and send the join
-phrase (for example <code>join letter-now</code>). Twilio confirms. The sandbox session lasts 3 days; after
-that, send the join phrase again. A production WhatsApp number would not need this step.</p>
+  G -- done --&gt; K[Sends DELETE: reports and settings erased]</pre><p><strong>Getting started.</strong> Save the WhatsApp number shown on the web page (or tap <strong>Open WhatsApp</strong>,
+which prepares a <code>HELP</code> message) and send anything — Jaanch can only reply after you write first.
+During testing this is Meta&#39;s free test number, which answers only the phone numbers registered in
+the Meta app (up to 5); a production number would answer everyone.</p>
 <p><strong>Sending content.</strong> Forward the text, send up to 5 screenshots, or a voice note. Items sent
 within a few seconds of each other are investigated together. Jaanch acknowledges immediately.</p>
 <p><strong>The reply.</strong> One or two WhatsApp messages (each under 1,500 characters). Below is the engine&#39;s

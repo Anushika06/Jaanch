@@ -28,8 +28,9 @@ person using the phone (hands only, or a face cam in the corner).
 
 ## Pre-flight (30 minutes before recording)
 
-1. **WhatsApp sandbox:** on the demo phone, send the join phrase to the sandbox number (sessions
-   expire after 3 days). Send `HELP` and confirm a reply arrives.
+1. **WhatsApp:** the demo phone must be registered as a tester in the Meta app (WhatsApp → API
+   Setup → To). Send `HELP` and confirm a reply arrives — this also opens the 24-hour reply window.
+   If the access token is a temporary one, generate a fresh token first (they expire within a day).
 2. **Warm the server:** open `https://<api>/healthz` (free hosting sleeps after 15 minutes idle).
 3. **Fresh data:** `GET /api/v1/sources` — SEBI categories should show today's or yesterday's date.
    If not: `POST /admin/ingest` with the admin token, wait a minute.
@@ -60,8 +61,8 @@ person using the phone (hands only, or a face cam in the corner).
 | 1:12 | Scroll to _Could not check_ and _What to do next_.                                                                                                                                                                                                                             | "And Jaanch is honest about what it can't check — who runs that Telegram group, or whether any return will ever be paid. Not finding a problem is never shown as safety."                                      | There is no overall "safe" or "scam" score anywhere.              |
 | 1:20 | Tap the report link → browser opens the full report. Tap **Show evidence** under the first claim: the SEBI register entry with name, number, validity, official email and phone, "Open the official source". Scroll to **Who is contacting you, and who is registered**.       | "Every verdict has evidence you can open on SEBI's own website. And this table is the heart of it: who is contacting you, versus who is registered. Same registration number — different name."                | The channel-binding table: Name _Different_, Registration _Same_. |
 
-**Backup path:** if the WhatsApp reply doesn't arrive within 60 seconds (sandbox delay or a cold
-start), cut to the pre-recorded dry-run clip of the same exchange, then continue live in the
+**Backup path:** if the WhatsApp reply doesn't arrive within 60 seconds (a cold start or a slow
+model response), cut to the pre-recorded dry-run clip of the same exchange, then continue live in the
 browser with the dry-run report URL.
 
 ## 1:35 – 2:10 · A legitimate message

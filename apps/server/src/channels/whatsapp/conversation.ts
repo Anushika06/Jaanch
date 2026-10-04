@@ -123,7 +123,10 @@ export class WhatsAppConversation {
       case 'join':
         return; // Sandbox opt-in, answered by Twilio itself.
       case 'help':
-        await this.queueSend(msg.replyTo, [t(locale, 'WA_WELCOME'), t(locale, 'WA_HELP')]);
+        // One message, not two: every WhatsApp message is billed (and trial accounts are capped).
+        await this.queueSend(msg.replyTo, [
+          `${t(locale, 'WA_WELCOME')}\n\n${t(locale, 'WA_HELP')}`,
+        ]);
         return;
       case 'hindi':
       case 'english': {

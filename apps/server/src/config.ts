@@ -53,7 +53,7 @@ const EnvSchema = z.object({
   LLM_TEXT_MODEL: optionalString,
   LLM_NARRATOR_MODEL: optionalString,
   LLM_ASR_MODEL: optionalString,
-  LLM_TIMEOUT_MS: num(45_000),
+  LLM_TIMEOUT_MS: num(90_000),
   OCR_CONSENSUS: bool(true),
   NARRATIVE: bool(true),
   SOURCE_TIMEOUT_MS: num(12_000),
@@ -68,6 +68,23 @@ const EnvSchema = z.object({
   TWILIO_CATCHUP_ON_BOOT: bool(true),
   /** Shown on the web page so people can join the sandbox, e.g. "join letter-now". */
   TWILIO_SANDBOX_JOIN_CODE: optionalString,
+
+  /** auto = Meta if its credentials are set, else Twilio if its credentials are set. */
+  WHATSAPP_PROVIDER: z.enum(['auto', 'twilio', 'meta']).default('auto'),
+  META_WA_ACCESS_TOKEN: optionalString,
+  /** The WhatsApp phone number id from the app's API Setup page (not the phone number). */
+  META_WA_PHONE_NUMBER_ID: optionalString,
+  /** App settings → Basic → App secret; verifies X-Hub-Signature-256 on every webhook. */
+  META_APP_SECRET: optionalString,
+  /** Any random string; entered in the app's webhook settings to verify the callback URL. */
+  META_WA_VERIFY_TOKEN: optionalString,
+  META_GRAPH_VERSION: z
+    .string()
+    .regex(/^v\d+\.\d+$/)
+    .default('v23.0'),
+  /** Shown on the web page; looked up from the Graph API when empty. */
+  META_WA_DISPLAY_NUMBER: optionalString,
+  META_VALIDATE_SIGNATURE: bool(true),
   WHATSAPP_COLLECT_WINDOW_MS: num(5_000),
 
   WORKER_ENABLED: bool(true),
@@ -83,6 +100,7 @@ export interface Config extends Env {
   corsOrigins: string[];
   appSecret: string;
   llmEnabled: boolean;
+  whatsappProvider: 'twilio' | 'meta' | null;
   twilioEnabled: boolean;
   isProduction: boolean;
 }
@@ -104,6 +122,40 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const e = parsed.data;
   const isProduction = e.NODE_ENV === 'production';
 
+  const twilioReady = Boolean(
+    e.TWILIO_ACCOUNT_SID &&
+    e.TWILIO_AUTH_TOKEN &&
+    (e.TWILIO_WHATSAPP_FROM || e.TWILIO_MESSAGING_SERVICE_SID),
+  );
+  const metaReady = Boolean(e.META_WA_ACCESS_TOKEN && e.META_WA_PHONE_NUMBER_ID);
+  const whatsappProvider =
+    e.WHATSAPP_PROVIDER === 'meta'
+      ? metaReady
+        ? 'meta'
+        : null
+      : e.WHATSAPP_PROVIDER === 'twilio'
+        ? twilioReady
+          ? 'twilio'
+          : null
+        : metaReady
+          ? 'meta'
+          : twilioReady
+            ? 'twilio'
+            : null;
+  if (whatsappProvider === 'meta') {
+    const problems: string[] = [];
+    if (!e.META_WA_VERIFY_TOKEN)
+      problems.push('META_WA_VERIFY_TOKEN must be set (any random string) to verify the webhook');
+    if (e.META_VALIDATE_SIGNATURE && !e.META_APP_SECRET)
+      problems.push('META_APP_SECRET is required to verify webhook signatures');
+    if (isProduction && !e.META_VALIDATE_SIGNATURE)
+      problems.push('META_VALIDATE_SIGNATURE must stay enabled in production');
+    if (problems.length)
+      throw new ConfigError(
+        `WhatsApp (Meta) is misconfigured:\n${problems.map((p) => `  - ${p}`).join('\n')}`,
+      );
+  }
+
   if (isProduction) {
     const problems: string[] = [];
     if (!e.APP_SECRET || e.APP_SECRET.length < 32)
@@ -124,11 +176,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       );
   }
 
-  const twilioEnabled = Boolean(
-    e.TWILIO_ACCOUNT_SID &&
-    e.TWILIO_AUTH_TOKEN &&
-    (e.TWILIO_WHATSAPP_FROM || e.TWILIO_MESSAGING_SERVICE_SID),
-  );
   const webBaseUrl = (e.WEB_BASE_URL ?? e.PUBLIC_BASE_URL).replace(/\/$/, '');
   return {
     ...e,
@@ -141,7 +188,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Development fallback only; production requires APP_SECRET (checked above).
     appSecret: e.APP_SECRET ?? 'development-only-secret-do-not-use-in-production-0000',
     llmEnabled: e.LLM_PROVIDER === 'nvidia' && Boolean(e.NVIDIA_API_KEY),
-    twilioEnabled,
+    whatsappProvider,
+    twilioEnabled: whatsappProvider === 'twilio',
     isProduction,
   };
 }
@@ -156,7 +204,7 @@ export function describeConfig(c: Config): Record<string, unknown> {
     sourceMode: c.SOURCE_MODE,
     sebiLiveLookups: c.SEBI_LIVE_LOOKUPS,
     llm: c.llmEnabled ? 'nvidia' : 'disabled',
-    whatsapp: c.twilioEnabled ? 'twilio' : 'disabled',
+    whatsapp: c.whatsappProvider ?? 'disabled',
     worker: c.WORKER_ENABLED
       ? `${c.WORKER_CONCURRENCY}x${c.WORKER_POLL_MS ? `, poll ${c.WORKER_POLL_MS}ms` : ', event-driven'}`
       : 'disabled',

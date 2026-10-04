@@ -42,8 +42,10 @@ const en = {
   waStep1: 'Save {number} and send the message “{join}”.',
   waStep1NoJoin: 'Save {number} on WhatsApp.',
   waStep2: 'Forward the message or screenshots to it.',
-  waStep3: 'The report comes back in about 30 seconds.',
+  waStep3: 'The report usually comes back within a minute.',
   waOpen: 'Open WhatsApp',
+  waTestNumber:
+    'For now this is a WhatsApp test number: it answers only phone numbers the Jaanch team has registered. Everyone can use the check on this page.',
   waSandbox:
     'For now this uses Twilio’s WhatsApp test number. You may need to send the join message again after 3 days.',
   howTitle: 'How Jaanch checks a message',
@@ -182,8 +184,10 @@ const hi: Record<StringKey, string> = {
   waStep1: '{number} सेव करें और “{join}” मैसेज भेजें।',
   waStep1NoJoin: 'WhatsApp पर {number} सेव करें।',
   waStep2: 'उस पर मैसेज या स्क्रीनशॉट फ़ॉरवर्ड करें।',
-  waStep3: 'लगभग 30 सेकंड में रिपोर्ट आ जाती है।',
+  waStep3: 'आम तौर पर एक मिनट के अंदर रिपोर्ट आ जाती है।',
   waOpen: 'WhatsApp खोलें',
+  waTestNumber:
+    'अभी यह WhatsApp का टेस्ट नंबर है: यह सिर्फ़ Jaanch टीम के रजिस्टर किए नंबरों को जवाब देता है। इस पेज पर जाँच सब कर सकते हैं।',
   waSandbox:
     'अभी यह Twilio के WhatsApp टेस्ट नंबर पर चलता है। 3 दिन बाद join मैसेज दोबारा भेजना पड़ सकता है।',
   howTitle: 'Jaanch मैसेज को कैसे जाँचता है',
