@@ -115,7 +115,15 @@ export async function registerMetaWhatsAppRoutes(
           .type('text/plain')
           .send(q['hub.challenge'] ?? '');
       }
-      deps.logger.warn({}, 'rejected Meta webhook verification (wrong verify token)');
+      // Lengths only — never the token itself — to tell a typo from a wrong value.
+      deps.logger.warn(
+        {
+          mode: q['hub.mode'] ?? null,
+          receivedLength: token.length,
+          expectedLength: deps.verifyToken.length,
+        },
+        'rejected Meta webhook verification (wrong verify token)',
+      );
       return reply.code(403).send();
     });
 
