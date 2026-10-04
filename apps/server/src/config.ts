@@ -69,8 +69,11 @@ const EnvSchema = z.object({
   /** Shown on the web page so people can join the sandbox, e.g. "join letter-now". */
   TWILIO_SANDBOX_JOIN_CODE: optionalString,
 
-  /** auto = Meta if its credentials are set, else Twilio if its credentials are set. */
-  WHATSAPP_PROVIDER: z.enum(['auto', 'twilio', 'meta']).default('auto'),
+  /**
+   * Jaanch is a web product; the WhatsApp channel is off unless enabled here. auto = Meta if its
+   * credentials are set, else Twilio. (Both providers require a verified/paid business account.)
+   */
+  WHATSAPP_PROVIDER: z.enum(['none', 'auto', 'twilio', 'meta']).default('none'),
   META_WA_ACCESS_TOKEN: optionalString,
   /** The WhatsApp phone number id from the app's API Setup page (not the phone number). */
   META_WA_PHONE_NUMBER_ID: optionalString,
@@ -129,19 +132,21 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   );
   const metaReady = Boolean(e.META_WA_ACCESS_TOKEN && e.META_WA_PHONE_NUMBER_ID);
   const whatsappProvider =
-    e.WHATSAPP_PROVIDER === 'meta'
-      ? metaReady
-        ? 'meta'
-        : null
-      : e.WHATSAPP_PROVIDER === 'twilio'
-        ? twilioReady
-          ? 'twilio'
-          : null
-        : metaReady
+    e.WHATSAPP_PROVIDER === 'none'
+      ? null
+      : e.WHATSAPP_PROVIDER === 'meta'
+        ? metaReady
           ? 'meta'
-          : twilioReady
+          : null
+        : e.WHATSAPP_PROVIDER === 'twilio'
+          ? twilioReady
             ? 'twilio'
-            : null;
+            : null
+          : metaReady
+            ? 'meta'
+            : twilioReady
+              ? 'twilio'
+              : null;
   if (whatsappProvider === 'meta') {
     const problems: string[] = [];
     if (!e.META_WA_VERIFY_TOKEN)

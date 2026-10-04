@@ -25,8 +25,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "db:migrate": "pnpm --filter @jaanch/server cli migrate",
     "ingest": "pnpm --filter @jaanch/server cli ingest",
-    "docs:html": "node scripts/build-docs.mjs",
-    "tunnel": "cloudflared tunnel --url http://localhost:8787"
+    "docs:html": "node scripts/build-docs.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -27,17 +27,15 @@
 <main>
 <p class="back"><a href="../README.md">Jaanch</a> · documentation</p>
 <h1>Architecture</h1>
-<p>Jaanch is one investigation engine with two channels in front of it. The engine reads a message,
+<p>Jaanch is a website in front of one investigation engine. The engine reads a message,
 lists its claims, checks them against official sources and decides each claim with fixed rules.
 Language models only read and (optionally) summarise; they never decide.</p>
 <h2>System context</h2>
 <pre class="mermaid">flowchart LR
   subgraph People
-    U1[Investor on WhatsApp]
-    U2[Investor on the web]
+    U2[Investor in a browser&lt;br/&gt;phone or computer]
   end
   subgraph Providers
-    TW[WhatsApp provider&lt;br/&gt;Meta Cloud API or Twilio]
     NIM[NVIDIA NIM&lt;br/&gt;vision + text models]
     ASR[NVIDIA Riva ASR&lt;br/&gt;gRPC]
   end
@@ -48,7 +46,6 @@ Language models only read and (optionally) summarise; they never decide.</p>
     RULES[Rule table&lt;br/&gt;SEBI regulations and circulars]
   end
   subgraph Jaanch server
-    WH[WhatsApp channel&lt;br/&gt;webhook + conversation]
     API[Web API]
     Q[(Job queue&lt;br/&gt;Postgres)]
     ENG[Investigation engine&lt;br/&gt;packages/core]
@@ -56,9 +53,7 @@ Language models only read and (optionally) summarise; they never decide.</p>
   end
   WEB[Web app&lt;br/&gt;React]
 
-  U1 &lt;--&gt; TW &lt;--&gt; WH
   U2 &lt;--&gt; WEB &lt;--&gt; API
-  WH --&gt; Q
   API --&gt; Q
   Q --&gt; ENG
   ENG --&gt; NIM
@@ -77,7 +72,7 @@ Language models only read and (optionally) summarise; they never decide.</p>
 </thead>
 <tbody><tr>
 <td><code>packages/core</code></td>
-<td>Domain schemas (zod), deterministic extraction (registration numbers, UPI IDs, phones, links, emails, EN/HI/Hinglish phrase patterns), claim building and grounding, verification planning, adjudication, the rule table, explanation templates (English + Hindi), report/web/WhatsApp/summary rendering, and the engine. No I/O.</td>
+<td>Domain schemas (zod), deterministic extraction (registration numbers, UPI IDs, phones, links, emails, EN/HI/Hinglish phrase patterns), claim building and grounding, verification planning, adjudication, the rule table, explanation templates (English + Hindi), report, web view and evidence-summary rendering, and the engine. No I/O.</td>
 </tr>
 <tr>
 <td><code>packages/db</code></td>
@@ -93,7 +88,7 @@ Language models only read and (optionally) summarise; they never decide.</p>
 </tr>
 <tr>
 <td><code>apps/server</code></td>
-<td>Composition root: configuration, Fastify HTTP server, web API, WhatsApp channel (Meta Cloud API and Twilio transports), event-driven worker, ingestion and operations CLI.</td>
+<td>Composition root: configuration, Fastify HTTP server, web API, event-driven worker, ingestion and operations CLI (and a WhatsApp channel, off by default).</td>
 </tr>
 <tr>
 <td><code>apps/web</code></td>
@@ -111,7 +106,7 @@ Language models only read and (optionally) summarise; they never decide.</p>
   PLAN[Plan and verify&lt;br/&gt;registry by number / by name, inactive list,&lt;br/&gt;alert list, domain age — with timeouts] --&gt; ADJ
   ADJ[Adjudicate&lt;br/&gt;pure functions + rule table&lt;br/&gt;CONTRADICTED / MATCHES / NOT FOUND / CAN'T CHECK] --&gt; EXPL
   EXPL[Explain&lt;br/&gt;templates EN/HI, evidence, next steps&lt;br/&gt;optional model summary behind a guard] --&gt; OUT
-  OUT[Report&lt;br/&gt;stored 7 days] --&gt; CH[Channel rendering&lt;br/&gt;WhatsApp messages / web view]</pre><p>Which steps involve a model:</p>
+  OUT[Report&lt;br/&gt;stored 7 days] --&gt; CH[Web report view&lt;br/&gt;EN / HI]</pre><p>Which steps involve a model:</p>
 <table>
 <thead>
 <tr>
@@ -195,40 +190,29 @@ Language models only read and (optionally) summarise; they never decide.</p>
 pay-to-withdraw, profit screenshots, accuracy claims, crypto payment, personal UPI IDs) become
 warnings with severity, never verdicts. RBI Alert List hits, new domains, look-alike domains,
 shorteners and raw-IP links are warnings with evidence.</p>
-<h2>Channels</h2>
-<p>The engine knows nothing about channels. Each channel is an adapter:</p>
-<ul>
-<li><strong>Web</strong> (<code>apps/server/src/channels/web</code>): <code>POST /api/v1/investigations</code> (multipart or JSON)
-returns an id and a one-time owner token; the client polls <code>GET /api/v1/investigations/:id</code>
-for progress and the report view; summary, recovery and delete endpoints complete the flow.</li>
-<li><strong>WhatsApp</strong> (<code>apps/server/src/channels/whatsapp</code>): a <code>MessagingTransport</code> interface with
-Meta Cloud API and Twilio implementations (<code>WHATSAPP_PROVIDER</code>), and provider-independent
-conversation logic. The diagram shows Meta; Twilio differs only in its signature scheme
-(<code>X-Twilio-Signature</code>), its empty-TwiML answer and its one-message-per-3-seconds sandbox pacing.</li>
-</ul>
+<h2>How the website uses the engine</h2>
+<p>The web app (<code>apps/web</code>) renders view models built on the server; it contains no investigation
+logic. The API (<code>apps/server/src/channels/web</code>):</p>
 <pre class="mermaid">sequenceDiagram
-  participant P as Person (WhatsApp)
-  participant T as WhatsApp (Meta)
-  participant W as Webhook
+  participant B as Browser
+  participant A as Web API
   participant Q as Job queue
-  participant C as Conversation
   participant E as Engine
-  P-&gt;&gt;T: forwards message + screenshots
-  T-&gt;&gt;W: POST (signed)
-  W-&gt;&gt;W: verify X-Hub-Signature-256, de-duplicate message id
-  W-&gt;&gt;Q: enqueue whatsapp.inbound (encrypted)
-  W--&gt;&gt;T: 200 (immediately)
-  Q-&gt;&gt;C: inbound: command? else download media, validate, store briefly
-  C-&gt;&gt;Q: debounce whatsapp.collect (5 s window, 20 s max)
-  C-&gt;&gt;Q: whatsapp.send "Checking…"
-  Q-&gt;&gt;C: collect: create investigation
-  Q-&gt;&gt;E: investigation.run
-  E--&gt;&gt;Q: report stored
-  Q-&gt;&gt;C: render for WhatsApp (≤1,500 chars per message)
-  C-&gt;&gt;T: send (one at a time, in order)
-  T-&gt;&gt;P: report + link to full evidence</pre><p>Commands are recognised only when the whole message is a command word — <code>HELP</code>, <code>HINDI</code>,
-<code>ENGLISH</code>, <code>PAID</code>, <code>DELETE</code>, <code>REPORT</code> (and Hindi equivalents) — so a forwarded pitch is never
-mistaken for a command.</p>
+  B-&gt;&gt;B: compress screenshots (client-side)
+  B-&gt;&gt;A: POST /api/v1/investigations (text, screenshots, link, voice note)
+  A-&gt;&gt;A: validate uploads by content, rate-limit, store media briefly
+  A-&gt;&gt;Q: enqueue investigation.run (payload encrypted)
+  A--&gt;&gt;B: id + one-time owner token
+  loop every ~1 s
+    B-&gt;&gt;A: GET /api/v1/investigations/:id
+    A--&gt;&gt;B: stage (reading → claims → records → rules → report)
+  end
+  Q-&gt;&gt;E: run
+  E--&gt;&gt;Q: report stored (7 days)
+  B-&gt;&gt;A: GET report view (EN or HI), evidence summary, recovery page
+  B-&gt;&gt;A: DELETE (owner token) — report erased immediately</pre><p>A WhatsApp channel (<code>apps/server/src/channels/whatsapp</code>: Meta Cloud API and Twilio adapters with
+signed webhooks) is in the codebase but off (<code>WHATSAPP_PROVIDER=none</code>); both providers require a
+verified or paid business account. See <a href="technical-decisions.md">technical-decisions.md</a>.</p>
 <h2>Data model and retention</h2>
 <table>
 <thead>
@@ -252,11 +236,6 @@ mistaken for a command.</p>
 <td><code>blobs</code></td>
 <td>Uploaded media until read</td>
 <td>Deleted right after reading; hard expiry 30 minutes</td>
-</tr>
-<tr>
-<td><code>channel_sessions</code></td>
-<td>WhatsApp language preference, last report id, pending (encrypted) parts — keyed by HMAC of the user id</td>
-<td>30 days of inactivity</td>
 </tr>
 <tr>
 <td><code>inbound_messages</code></td>
@@ -311,20 +290,12 @@ list changes rarely) are marked stale in the report.</p>
 <td>Identifiers marked uncertain; never CONTRADICTED; &quot;check the number in the original message&quot;</td>
 </tr>
 <tr>
-<td>Webhook missed during a cold start</td>
-<td>Meta retries delivery until it succeeds (up to 7 days); with Twilio, a boot-time catch-up lists recent inbound messages and processes any not yet seen</td>
-</tr>
-<tr>
 <td>Worker crash mid-job</td>
 <td>Lease expires; job re-queued; investigations are idempotent</td>
 </tr>
-<tr>
-<td>WhatsApp send fails mid-sequence</td>
-<td>Only unsent messages are retried (no duplicates); permanent provider errors (recipient not registered for the test number, more than 24 hours since the user wrote, expired token) are dropped and logged</td>
-</tr>
 </tbody></table>
 <h2>Deployment shape</h2>
-<p>One Docker image runs everything (API, webhook, worker, web app, CLI). On free tiers: Render web
+<p>One Docker image runs everything (API, worker, web app, CLI). On free tiers: Render web
 service + Neon Postgres, with the web app optionally on Vercel. See <a href="deployment.md">deployment.md</a>
 and <a href="technical-decisions.md">technical-decisions.md</a>.</p>
 

@@ -15,6 +15,7 @@ let seq = 0;
 
 beforeAll(async () => {
   s = await startTestServer({
+    WHATSAPP_PROVIDER: 'twilio',
     TWILIO_ACCOUNT_SID: 'ACtest00000000000000000000000000',
     TWILIO_AUTH_TOKEN: AUTH_TOKEN,
     TWILIO_WHATSAPP_FROM: 'whatsapp:+14155238886',

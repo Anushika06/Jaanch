@@ -1,4 +1,4 @@
-# Jaanch — forward it, Jaanch investigates it
+# Jaanch — paste it, Jaanch investigates it
 
 **Jaanch** (जाँच, "inspection") checks the claims in an investment message against India's
 official records before you send money.
@@ -20,8 +20,8 @@ numbers work, what SEBI's rules say about returns and payments — in English, o
 
 ## What Jaanch does
 
-Forward the message (or a screenshot, link or voice note) to Jaanch on WhatsApp, or paste it on
-the web. Usually within a minute, Jaanch returns a report:
+Paste the message, upload screenshots of the chat, add a link or record a voice note on the Jaanch
+website. Usually within a minute, Jaanch returns a report:
 
 - **Every claim, one by one**, with a stamp: **CONTRADICTED**, **MATCHES**, **NOT FOUND** or
   **CAN'T CHECK**.
@@ -66,8 +66,8 @@ is the party the number belongs to**.
 > 9876501234@ybl is not such an ID. _(SEBI circular SEBI/HO/DEPA-II/DEPA-II_SRG/P/CIR/2025/86,
 > 11 Jun 2025)_
 
-This is the engine's output against SEBI's live register on 4 Oct 2026, with the claim extraction
-supplied in the shape the model returns. The registered firm has nothing to do with the message —
+This is live output on 4 Oct 2026: the AI model read the demo screenshot and the engine checked it
+against SEBI's register (about 30 seconds end to end). The registered firm has nothing to do with the message —
 its number was borrowed. Jaanch reports exactly that: what the record shows, without accusing
 anyone.
 
@@ -91,19 +91,19 @@ If anything was unclear in the screenshot, Jaanch says it can't check rather tha
 
 ## Built for Bharat
 
-- **WhatsApp first** — the place the pitch arrived; no app to install.
-- **Hindi and English**, including Hinglish and Devanagari screenshots; switch with "HINDI".
+- **Works from the phone** — a light website, no app to install; take a screenshot of the
+  WhatsApp or Telegram chat and upload it.
+- **Hindi and English**, including Hinglish and Devanagari screenshots; one tap switches language.
 - **Voice notes** (speech-to-text) when supported by the configured provider.
-- **Light web app** for slow connections; screenshots are compressed in the browser; installable,
-  and on Android other apps can share text or links straight to Jaanch.
+- **Light on data**: screenshots are compressed in the browser before upload; installable as an
+  app, and on Android other apps can share text or links straight to Jaanch.
 - **Plain language**: no jargon, short sentences, large tap targets.
 
 ## Privacy in one paragraph
 
 Screenshots and voice notes are deleted as soon as they are read. Reports are kept for 7 days so
-the link works, then deleted — or immediately on request ("DELETE" on WhatsApp, a button on the
-web). Phone numbers and IP addresses are never stored; your own number is removed from forwarded
-screenshots before checking. In this prototype, an NVIDIA-hosted AI model reads screenshots; its
+the link works, then deleted — or immediately with the "Delete this report" button. No account,
+no phone number, and IP addresses are never stored. In this prototype, an NVIDIA-hosted AI model reads screenshots; its
 terms allow logging, so avoid sending images with your own bank or personal details. Details:
 [trust-and-safety.md](trust-and-safety.md).
 

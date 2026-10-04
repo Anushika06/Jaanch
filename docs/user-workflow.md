@@ -1,95 +1,32 @@
 # User workflows
 
-## 1. WhatsApp: forward a message
+Jaanch is a website. It works on any phone or computer browser, in English and Hindi, with no
+account and no app to install (it can be installed as a web app).
 
-```mermaid
-flowchart TD
-  A[Receives an investment pitch] --> B{First time?}
-  B -- yes --> C[Saves the Jaanch number and sends HELP]
-  C --> D[Forwards the message, screenshots or voice note]
-  B -- no --> D
-  D --> E["Jaanch: 'Checking… usually under a minute'"]
-  E --> F[Report: headline, claim stamps, warnings, could-not-check, next steps, link to full report]
-  F --> G{What next?}
-  G -- reads the evidence --> H[Opens the link: full web report]
-  G -- already paid --> I["Sends PAID: 1930, cybercrime.gov.in, bank, UPI complaint, evidence summary link"]
-  G -- prefers Hindi --> J[Sends HINDI: all replies in Hindi]
-  G -- done --> K[Sends DELETE: reports and settings erased]
-```
-
-**Getting started.** Save the WhatsApp number shown on the web page (or tap **Open WhatsApp**,
-which prepares a `HELP` message) and send anything — Jaanch can only reply after you write first.
-During testing this is Meta's free test number, which answers only the phone numbers registered in
-the Meta app (up to 5); a production number would answer everyone.
-
-**Sending content.** Forward the text, send up to 5 screenshots, or a voice note. Items sent
-within a few seconds of each other are investigated together. Jaanch acknowledges immediately.
-
-**The reply.** One or two WhatsApp messages (each under 1,500 characters). Below is the engine's
-output for the demo pitch against SEBI's live register on 4 Oct 2026, with the claim extraction
-supplied in the shape the model returns (the contact email from SEBI's record is shortened):
-
-```
-*Jaanch report* 🔎
-The registration number is real. It just isn't theirs.
-
-*What the message claims*
-❌ *CONTRADICTED* — Sharma Investments is registered with SEBI (Research Analyst) under number INH000011431.
-   The message says INH000011431 belongs to Sharma Investments. SEBI's register shows INH000011431 is registered to 360 ONE Distribution Services Limited (Mumbai) — a different name.
-🔍 *NOT FOUND* — This message is from Sharma Investments.
-   We found no SEBI-registered intermediary named Sharma Investments (register updated 3 Oct 2026).
-❌ *CONTRADICTED* — Returns are guaranteed: 30% per month.
-   The message claims SEBI registration (Research Analyst) and also promises guaranteed returns. SEBI's rules do not allow registered advisers, analysts or brokers to promise assured returns.
-❌ *CONTRADICTED* — Payment should go to UPI ID 9876501234@ybl.
-   The message asks for payment to 9876501234@ybl for a SEBI-registered service (Research Analyst). SEBI requires registered intermediaries to collect UPI payments through validated UPI IDs ending in “@valid…”, and their old UPI IDs were to be discontinued. 9876501234@ybl is not such an ID.
-❔ *CAN'T CHECK* — You can get a 'VIP' group membership.
-   The message offers a 'VIP' group membership. SEBI and the stock exchanges have warned that offers like this on social media are used to defraud investors.
-```
-
-```
-*Warning signs*
-⚠️ The message promises guaranteed or risk-free returns (“Guaranteed 30% monthly returns in F&O”). SEBI says assured, guaranteed or fixed-return schemes are prohibited by law.
-⚠️ The message advertises an accuracy or success rate (“Our last 50 calls gave 100% accuracy”). SEBI's rules do not allow registered advisers and analysts to advertise accuracy percentages or unverified past performance.
-⚠️ 9876501234@ybl looks like a personal UPI ID (made from a mobile number), not a business collection account.
-
-*Could not check*
-• Who runs the WhatsApp/Telegram groups or channels — we can't check that.
-• Whether any promised return will actually be paid — no one can check the future.
-
-*What to do next*
-1. Pause before paying. The checks in this report found problems with what this message claims.
-2. To confirm, contact 360 ONE Distribution Services Limited using the details on SEBI's record (…@iiflw.com) — not the numbers in this message.
-3. Check any UPI ID, QR code or bank account on SEBI Check before paying a SEBI-registered firm. https://siportal.sebi.gov.in/intermediary/sebi-check
-
-Full report: https://<your-domain>/r/J…
-
-Reply PAID if you already sent money · HINDI for Hindi · HELP for help
-```
-
-**Commands** (the whole message must be the command, so forwarded text is never misread):
-
-| Send                                     | Effect                                                                  |
-| ---------------------------------------- | ----------------------------------------------------------------------- |
-| `HELP`, `hi`, `namaste`, `मदद`           | How to use Jaanch                                                       |
-| `HINDI` / `हिंदी`, `ENGLISH`             | Switch reply language                                                   |
-| `PAID`, `I already paid`, `पैसे भेज दिए` | Recovery steps for the last report, with a link to the evidence summary |
-| `REPORT`                                 | Link to the last report                                                 |
-| `DELETE`, `मिटाओ`                        | Delete reports and settings                                             |
-
-## 2. Web: paste or upload
+## 1. Check a message
 
 ```mermaid
 flowchart LR
-  A[Open Jaanch] --> B[Paste text / add screenshots / add link / record voice note]
-  B --> C[Investigate]
-  C --> D[Live progress: reading → claims → official records → SEBI rules → report]
-  D --> E[Report]
-  E --> F[Show evidence on any claim]
-  E --> G[Copy evidence summary]
-  E --> H[Share report link]
-  E --> I[I already paid]
-  E --> J[Delete this report]
+  A[Gets an investment pitch on WhatsApp, Telegram, SMS...] --> B[Opens Jaanch]
+  B --> C[Pastes the text / uploads chat screenshots / adds a link / records a voice note]
+  C --> D[Investigate]
+  D --> E[Live progress: reading → claims → official records → SEBI rules → report]
+  E --> F[Report]
+  F --> G[Show evidence on any claim]
+  F --> H[Copy evidence summary]
+  F --> I[Share report link]
+  F --> J[I already paid]
+  F --> K[Delete this report]
 ```
+
+**Getting the pitch into Jaanch.** Copy the message text and paste it, or take screenshots of the
+chat (up to 5) and upload them; links and voice notes work too. On Android, the installed web app
+appears in the share sheet for text and links. Screenshots are compressed in the browser before
+upload, which keeps data use low on slow connections.
+
+**While it checks** (usually under a minute), the page shows each stage: reading the message,
+finding claims, checking official records, applying SEBI's rules, writing the report. The report
+link can be bookmarked or shared; it works for 7 days.
 
 **Report layout:**
 
@@ -111,9 +48,9 @@ The language switch (top right) re-renders the same report in Hindi or English.
 doubling pitch, a genuine SIP reminder) so anyone can see how Jaanch behaves; samples are checked
 against the same live sources.
 
-## 3. "I already paid"
+## 2. "I already paid"
 
-Reachable from every report (button) and on WhatsApp (`PAID`). It is routing, not a complaint
+Reachable from every report (**I already paid** button). It is routing, not a complaint
 portal, and collects nothing:
 
 1. Call **1930** (national helpline for reporting financial fraud) — tap to call.
@@ -127,7 +64,7 @@ portal, and collects nothing:
 8. **Copy the evidence summary** (report id, timestamps, each claim with the official record,
    identifiers from the message, sources and as-of dates) and attach it to the complaint.
 
-## 4. A legitimate message
+## 3. A legitimate message
 
 A genuine message is not flagged for using financial words. A mutual-fund SIP reminder with the
 standard "subject to market risks" disclaimer produces no claims and no warnings. A message from a
@@ -135,7 +72,7 @@ registered firm that uses its registered name, its number and its official email
 **MATCHES** for the registration and **MATCHES** for the contact details — with the caveat that
 details can be copied, and the could-not-check list still shown.
 
-## 5. When something is unclear
+## 4. When something is unclear
 
 - Blurry number in a screenshot → **CAN'T CHECK**, "check the number in the original message";
   if one plausible reading exists in the register, it is offered as a possibility.

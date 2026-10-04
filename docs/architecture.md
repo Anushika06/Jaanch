@@ -1,6 +1,6 @@
 # Architecture
 
-Jaanch is one investigation engine with two channels in front of it. The engine reads a message,
+Jaanch is a website in front of one investigation engine. The engine reads a message,
 lists its claims, checks them against official sources and decides each claim with fixed rules.
 Language models only read and (optionally) summarise; they never decide.
 
@@ -9,11 +9,9 @@ Language models only read and (optionally) summarise; they never decide.
 ```mermaid
 flowchart LR
   subgraph People
-    U1[Investor on WhatsApp]
-    U2[Investor on the web]
+    U2[Investor in a browser<br/>phone or computer]
   end
   subgraph Providers
-    TW[WhatsApp provider<br/>Meta Cloud API or Twilio]
     NIM[NVIDIA NIM<br/>vision + text models]
     ASR[NVIDIA Riva ASR<br/>gRPC]
   end
@@ -24,7 +22,6 @@ flowchart LR
     RULES[Rule table<br/>SEBI regulations and circulars]
   end
   subgraph Jaanch server
-    WH[WhatsApp channel<br/>webhook + conversation]
     API[Web API]
     Q[(Job queue<br/>Postgres)]
     ENG[Investigation engine<br/>packages/core]
@@ -32,9 +29,7 @@ flowchart LR
   end
   WEB[Web app<br/>React]
 
-  U1 <--> TW <--> WH
   U2 <--> WEB <--> API
-  WH --> Q
   API --> Q
   Q --> ENG
   ENG --> NIM
@@ -48,14 +43,14 @@ flowchart LR
 
 ## Packages
 
-| Package            | What it does                                                                                                                                                                                                                                                                                                                      |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`    | Domain schemas (zod), deterministic extraction (registration numbers, UPI IDs, phones, links, emails, EN/HI/Hinglish phrase patterns), claim building and grounding, verification planning, adjudication, the rule table, explanation templates (English + Hindi), report/web/WhatsApp/summary rendering, and the engine. No I/O. |
-| `packages/db`      | One `Db` interface over node-postgres (production) and PGlite (embedded Postgres for development/tests); SQL migrations; repositories; the job queue.                                                                                                                                                                             |
-| `packages/sources` | Official source adapters and their ingestion: SEBI registers (Excel export, live search, inactive list), RBI Alert List, RDAP. Fictional fixtures for development, clearly labelled.                                                                                                                                              |
-| `packages/llm`     | NVIDIA NIM client (202 polling, JSON-mode negotiation, retries), screenshot reader with tiling and consensus re-read, claim extractor, narrator, Riva speech-to-text, live model probe.                                                                                                                                           |
-| `apps/server`      | Composition root: configuration, Fastify HTTP server, web API, WhatsApp channel (Meta Cloud API and Twilio transports), event-driven worker, ingestion and operations CLI.                                                                                                                                                        |
-| `apps/web`         | The web app: compose → progress → report → "I already paid". Renders server-built view models; contains no investigation logic.                                                                                                                                                                                                   |
+| Package            | What it does                                                                                                                                                                                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`    | Domain schemas (zod), deterministic extraction (registration numbers, UPI IDs, phones, links, emails, EN/HI/Hinglish phrase patterns), claim building and grounding, verification planning, adjudication, the rule table, explanation templates (English + Hindi), report, web view and evidence-summary rendering, and the engine. No I/O. |
+| `packages/db`      | One `Db` interface over node-postgres (production) and PGlite (embedded Postgres for development/tests); SQL migrations; repositories; the job queue.                                                                                                                                                                                       |
+| `packages/sources` | Official source adapters and their ingestion: SEBI registers (Excel export, live search, inactive list), RBI Alert List, RDAP. Fictional fixtures for development, clearly labelled.                                                                                                                                                        |
+| `packages/llm`     | NVIDIA NIM client (202 polling, JSON-mode negotiation, retries), screenshot reader with tiling and consensus re-read, claim extractor, narrator, Riva speech-to-text, live model probe.                                                                                                                                                     |
+| `apps/server`      | Composition root: configuration, Fastify HTTP server, web API, event-driven worker, ingestion and operations CLI (and a WhatsApp channel, off by default).                                                                                                                                                                                  |
+| `apps/web`         | The web app: compose → progress → report → "I already paid". Renders server-built view models; contains no investigation logic.                                                                                                                                                                                                             |
 
 ## The pipeline
 
@@ -70,7 +65,7 @@ flowchart TD
   PLAN[Plan and verify<br/>registry by number / by name, inactive list,<br/>alert list, domain age — with timeouts] --> ADJ
   ADJ[Adjudicate<br/>pure functions + rule table<br/>CONTRADICTED / MATCHES / NOT FOUND / CAN'T CHECK] --> EXPL
   EXPL[Explain<br/>templates EN/HI, evidence, next steps<br/>optional model summary behind a guard] --> OUT
-  OUT[Report<br/>stored 7 days] --> CH[Channel rendering<br/>WhatsApp messages / web view]
+  OUT[Report<br/>stored 7 days] --> CH[Web report view<br/>EN / HI]
 ```
 
 Which steps involve a model:
@@ -100,45 +95,35 @@ pay-to-withdraw, profit screenshots, accuracy claims, crypto payment, personal U
 warnings with severity, never verdicts. RBI Alert List hits, new domains, look-alike domains,
 shorteners and raw-IP links are warnings with evidence.
 
-## Channels
+## How the website uses the engine
 
-The engine knows nothing about channels. Each channel is an adapter:
-
-- **Web** (`apps/server/src/channels/web`): `POST /api/v1/investigations` (multipart or JSON)
-  returns an id and a one-time owner token; the client polls `GET /api/v1/investigations/:id`
-  for progress and the report view; summary, recovery and delete endpoints complete the flow.
-- **WhatsApp** (`apps/server/src/channels/whatsapp`): a `MessagingTransport` interface with
-  Meta Cloud API and Twilio implementations (`WHATSAPP_PROVIDER`), and provider-independent
-  conversation logic. The diagram shows Meta; Twilio differs only in its signature scheme
-  (`X-Twilio-Signature`), its empty-TwiML answer and its one-message-per-3-seconds sandbox pacing.
+The web app (`apps/web`) renders view models built on the server; it contains no investigation
+logic. The API (`apps/server/src/channels/web`):
 
 ```mermaid
 sequenceDiagram
-  participant P as Person (WhatsApp)
-  participant T as WhatsApp (Meta)
-  participant W as Webhook
+  participant B as Browser
+  participant A as Web API
   participant Q as Job queue
-  participant C as Conversation
   participant E as Engine
-  P->>T: forwards message + screenshots
-  T->>W: POST (signed)
-  W->>W: verify X-Hub-Signature-256, de-duplicate message id
-  W->>Q: enqueue whatsapp.inbound (encrypted)
-  W-->>T: 200 (immediately)
-  Q->>C: inbound: command? else download media, validate, store briefly
-  C->>Q: debounce whatsapp.collect (5 s window, 20 s max)
-  C->>Q: whatsapp.send "Checking…"
-  Q->>C: collect: create investigation
-  Q->>E: investigation.run
-  E-->>Q: report stored
-  Q->>C: render for WhatsApp (≤1,500 chars per message)
-  C->>T: send (one at a time, in order)
-  T->>P: report + link to full evidence
+  B->>B: compress screenshots (client-side)
+  B->>A: POST /api/v1/investigations (text, screenshots, link, voice note)
+  A->>A: validate uploads by content, rate-limit, store media briefly
+  A->>Q: enqueue investigation.run (payload encrypted)
+  A-->>B: id + one-time owner token
+  loop every ~1 s
+    B->>A: GET /api/v1/investigations/:id
+    A-->>B: stage (reading → claims → records → rules → report)
+  end
+  Q->>E: run
+  E-->>Q: report stored (7 days)
+  B->>A: GET report view (EN or HI), evidence summary, recovery page
+  B->>A: DELETE (owner token) — report erased immediately
 ```
 
-Commands are recognised only when the whole message is a command word — `HELP`, `HINDI`,
-`ENGLISH`, `PAID`, `DELETE`, `REPORT` (and Hindi equivalents) — so a forwarded pitch is never
-mistaken for a command.
+A WhatsApp channel (`apps/server/src/channels/whatsapp`: Meta Cloud API and Twilio adapters with
+signed webhooks) is in the codebase but off (`WHATSAPP_PROVIDER=none`); both providers require a
+verified or paid business account. See [technical-decisions.md](technical-decisions.md).
 
 ## Data model and retention
 
@@ -147,7 +132,6 @@ mistaken for a command.
 | `investigations`                        | Status, stage, report JSON (claims, evidence, verdicts, transcript), owner-token hash, requester HMAC                            | 7 days (`REPORT_TTL_DAYS`), or earlier on DELETE    |
 | `jobs`                                  | Queue; payloads encrypted with AES-256-GCM where they contain message content or reply addresses; payload scrubbed on completion | Completed jobs deleted after 7 days                 |
 | `blobs`                                 | Uploaded media until read                                                                                                        | Deleted right after reading; hard expiry 30 minutes |
-| `channel_sessions`                      | WhatsApp language preference, last report id, pending (encrypted) parts — keyed by HMAC of the user id                           | 30 days of inactivity                               |
 | `inbound_messages`                      | Provider message ids (idempotency)                                                                                               | 14 days                                             |
 | `registry_entities`, `source_snapshots` | Official register snapshots and their provenance                                                                                 | Replaced on each ingestion                          |
 | `alert_list_entries`                    | RBI Alert List snapshot                                                                                                          | Replaced on each ingestion                          |
@@ -165,18 +149,16 @@ list changes rarely) are marked stale in the report.
 
 ## Failure behaviour
 
-| Failure                               | Behaviour                                                                                                                                                                                                 |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Language model unavailable or retired | Text is still checked with deterministic patterns; screenshots are reported as unreadable; the report says the AI reader was unavailable                                                                  |
-| SEBI live search down                 | Answers from the snapshot, labelled as such; with no snapshot, CAN'T CHECK                                                                                                                                |
-| RBI list / RDAP unavailable           | Listed under "Could not check"; nothing inferred                                                                                                                                                          |
-| Unclear screenshot                    | Identifiers marked uncertain; never CONTRADICTED; "check the number in the original message"                                                                                                              |
-| Webhook missed during a cold start    | Meta retries delivery until it succeeds (up to 7 days); with Twilio, a boot-time catch-up lists recent inbound messages and processes any not yet seen                                                    |
-| Worker crash mid-job                  | Lease expires; job re-queued; investigations are idempotent                                                                                                                                               |
-| WhatsApp send fails mid-sequence      | Only unsent messages are retried (no duplicates); permanent provider errors (recipient not registered for the test number, more than 24 hours since the user wrote, expired token) are dropped and logged |
+| Failure                               | Behaviour                                                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Language model unavailable or retired | Text is still checked with deterministic patterns; screenshots are reported as unreadable; the report says the AI reader was unavailable |
+| SEBI live search down                 | Answers from the snapshot, labelled as such; with no snapshot, CAN'T CHECK                                                               |
+| RBI list / RDAP unavailable           | Listed under "Could not check"; nothing inferred                                                                                         |
+| Unclear screenshot                    | Identifiers marked uncertain; never CONTRADICTED; "check the number in the original message"                                             |
+| Worker crash mid-job                  | Lease expires; job re-queued; investigations are idempotent                                                                              |
 
 ## Deployment shape
 
-One Docker image runs everything (API, webhook, worker, web app, CLI). On free tiers: Render web
+One Docker image runs everything (API, worker, web app, CLI). On free tiers: Render web
 service + Neon Postgres, with the web app optionally on Vercel. See [deployment.md](deployment.md)
 and [technical-decisions.md](technical-decisions.md).

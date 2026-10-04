@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Jaanch — forward it, Jaanch investigates it — Jaanch</title>
+<title>Jaanch — paste it, Jaanch investigates it — Jaanch</title>
 <style>
   :root { --paper:#f1f4f2; --ink:#18202e; --ink2:#47526a; --rule:#d3dce4; --neel:#22306e; --surface:#fff; }
   @media (prefers-color-scheme: dark) { :root { --paper:#0f1420; --ink:#e8ecf3; --ink2:#a9b3c6; --rule:#2a3346; --neel:#9fb0ff; --surface:#161d2b; } }
@@ -26,7 +26,7 @@
 <body>
 <main>
 <p class="back"><a href="../README.md">Jaanch</a> · documentation</p>
-<h1>Jaanch — forward it, Jaanch investigates it</h1>
+<h1>Jaanch — paste it, Jaanch investigates it</h1>
 <p><strong>Jaanch</strong> (जाँच, &quot;inspection&quot;) checks the claims in an investment message against India&#39;s
 official records before you send money.</p>
 <h2>The problem</h2>
@@ -43,8 +43,8 @@ convincing ones borrow credibility:</p>
 evidence?&quot;</em> Checking that today means knowing which SEBI register to search, how registration
 numbers work, what SEBI&#39;s rules say about returns and payments — in English, on a website.</p>
 <h2>What Jaanch does</h2>
-<p>Forward the message (or a screenshot, link or voice note) to Jaanch on WhatsApp, or paste it on
-the web. Usually within a minute, Jaanch returns a report:</p>
+<p>Paste the message, upload screenshots of the chat, add a link or record a voice note on the Jaanch
+website. Usually within a minute, Jaanch returns a report:</p>
 <ul>
 <li><strong>Every claim, one by one</strong>, with a stamp: <strong>CONTRADICTED</strong>, <strong>MATCHES</strong>, <strong>NOT FOUND</strong> or
 <strong>CAN&#39;T CHECK</strong>.</li>
@@ -83,8 +83,8 @@ validated UPI IDs ending in &quot;@valid…&quot;, and their old UPI IDs were to
 9876501234@ybl is not such an ID. <em>(SEBI circular SEBI/HO/DEPA-II/DEPA-II_SRG/P/CIR/2025/86,
 11 Jun 2025)</em></p>
 </blockquote>
-<p>This is the engine&#39;s output against SEBI&#39;s live register on 4 Oct 2026, with the claim extraction
-supplied in the shape the model returns. The registered firm has nothing to do with the message —
+<p>This is live output on 4 Oct 2026: the AI model read the demo screenshot and the engine checked it
+against SEBI&#39;s register (about 30 seconds end to end). The registered firm has nothing to do with the message —
 its number was borrowed. Jaanch reports exactly that: what the record shows, without accusing
 anyone.</p>
 <h2>What Jaanch is not</h2>
@@ -103,18 +103,18 @@ not the AI — decide each verdict. Explanations come from reviewed templates in
 If anything was unclear in the screenshot, Jaanch says it can&#39;t check rather than guessing.</p>
 <h2>Built for Bharat</h2>
 <ul>
-<li><strong>WhatsApp first</strong> — the place the pitch arrived; no app to install.</li>
-<li><strong>Hindi and English</strong>, including Hinglish and Devanagari screenshots; switch with &quot;HINDI&quot;.</li>
+<li><strong>Works from the phone</strong> — a light website, no app to install; take a screenshot of the
+WhatsApp or Telegram chat and upload it.</li>
+<li><strong>Hindi and English</strong>, including Hinglish and Devanagari screenshots; one tap switches language.</li>
 <li><strong>Voice notes</strong> (speech-to-text) when supported by the configured provider.</li>
-<li><strong>Light web app</strong> for slow connections; screenshots are compressed in the browser; installable,
-and on Android other apps can share text or links straight to Jaanch.</li>
+<li><strong>Light on data</strong>: screenshots are compressed in the browser before upload; installable as an
+app, and on Android other apps can share text or links straight to Jaanch.</li>
 <li><strong>Plain language</strong>: no jargon, short sentences, large tap targets.</li>
 </ul>
 <h2>Privacy in one paragraph</h2>
 <p>Screenshots and voice notes are deleted as soon as they are read. Reports are kept for 7 days so
-the link works, then deleted — or immediately on request (&quot;DELETE&quot; on WhatsApp, a button on the
-web). Phone numbers and IP addresses are never stored; your own number is removed from forwarded
-screenshots before checking. In this prototype, an NVIDIA-hosted AI model reads screenshots; its
+the link works, then deleted — or immediately with the &quot;Delete this report&quot; button. No account,
+no phone number, and IP addresses are never stored. In this prototype, an NVIDIA-hosted AI model reads screenshots; its
 terms allow logging, so avoid sending images with your own bank or personal details. Details:
 <a href="trust-and-safety.md">trust-and-safety.md</a>.</p>
 <h2>Sources</h2>

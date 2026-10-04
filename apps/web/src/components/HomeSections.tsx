@@ -1,58 +1,8 @@
-import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import { api, type SourcesStatus } from '../api';
 import { useApp } from '../context';
 import { formatDate } from '../i18n';
 import { Stamp } from './Stamp';
-
-export function WhatsAppPanel() {
-  const { t, meta } = useApp();
-  const [qr, setQr] = useState<string | null>(null);
-  const wa = meta?.whatsapp;
-
-  useEffect(() => {
-    if (!wa?.link) return;
-    QRCode.toString(wa.link, {
-      type: 'svg',
-      margin: 0,
-      color: { dark: '#18202E', light: '#00000000' },
-    })
-      .then(setQr)
-      .catch(() => setQr(null));
-  }, [wa?.link]);
-
-  if (!wa?.enabled || !wa.number) return null;
-  return (
-    <section className="panel whatsapp" aria-labelledby="wa-title">
-      <h2 id="wa-title">{t('waTitle')}</h2>
-      <div className="whatsapp__body">
-        <ol className="steps">
-          <li>
-            {wa.joinCode
-              ? t('waStep1', { number: wa.number, join: wa.joinCode })
-              : t('waStep1NoJoin', { number: wa.number })}
-          </li>
-          <li>{t('waStep2')}</li>
-          <li>{t('waStep3')}</li>
-        </ol>
-        {qr && (
-          <div
-            className="whatsapp__qr"
-            aria-hidden="true"
-            dangerouslySetInnerHTML={{ __html: qr }}
-          />
-        )}
-      </div>
-      {wa.link && (
-        <a className="button-secondary" href={wa.link} target="_blank" rel="noopener noreferrer">
-          {t('waOpen')}
-        </a>
-      )}
-      {wa.sandbox && <p className="fineprint">{t('waSandbox')}</p>}
-      {wa.testNumber && <p className="fineprint">{t('waTestNumber')}</p>}
-    </section>
-  );
-}
 
 export function HowItWorks() {
   const { t } = useApp();

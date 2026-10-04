@@ -38,16 +38,6 @@ const en = {
   sampleGenuine: 'SIP reminder',
   sampleNote:
     'Samples are written for this demo. They are checked against the same official sources.',
-  waTitle: 'Prefer WhatsApp?',
-  waStep1: 'Save {number} and send the message “{join}”.',
-  waStep1NoJoin: 'Save {number} on WhatsApp.',
-  waStep2: 'Forward the message or screenshots to it.',
-  waStep3: 'The report usually comes back within a minute.',
-  waOpen: 'Open WhatsApp',
-  waTestNumber:
-    'For now this is a WhatsApp test number: it answers only phone numbers the Jaanch team has registered. Everyone can use the check on this page.',
-  waSandbox:
-    'For now this uses Twilio’s WhatsApp test number. You may need to send the join message again after 3 days.',
   howTitle: 'How Jaanch checks a message',
   how1Title: 'Read',
   how1: 'An AI model reads the text and screenshots and lists every claim, word for word. It does not decide anything.',
@@ -180,16 +170,6 @@ const hi: Record<StringKey, string> = {
   sampleGenuine: 'SIP रिमाइंडर',
   sampleNote:
     'ये नमूने इस डेमो के लिए लिखे गए हैं। इन्हें भी उन्हीं आधिकारिक स्रोतों से जाँचा जाता है।',
-  waTitle: 'WhatsApp पर भेजना आसान है?',
-  waStep1: '{number} सेव करें और “{join}” मैसेज भेजें।',
-  waStep1NoJoin: 'WhatsApp पर {number} सेव करें।',
-  waStep2: 'उस पर मैसेज या स्क्रीनशॉट फ़ॉरवर्ड करें।',
-  waStep3: 'आम तौर पर एक मिनट के अंदर रिपोर्ट आ जाती है।',
-  waOpen: 'WhatsApp खोलें',
-  waTestNumber:
-    'अभी यह WhatsApp का टेस्ट नंबर है: यह सिर्फ़ Jaanch टीम के रजिस्टर किए नंबरों को जवाब देता है। इस पेज पर जाँच सब कर सकते हैं।',
-  waSandbox:
-    'अभी यह Twilio के WhatsApp टेस्ट नंबर पर चलता है। 3 दिन बाद join मैसेज दोबारा भेजना पड़ सकता है।',
   howTitle: 'Jaanch मैसेज को कैसे जाँचता है',
   how1Title: 'पढ़ना',
   how1: 'एक AI मॉडल टेक्स्ट और स्क्रीनशॉट पढ़कर हर दावे को शब्दशः लिखता है। वह कोई फ़ैसला नहीं करता।',

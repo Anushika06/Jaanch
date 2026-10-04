@@ -1,48 +1,38 @@
 # Deployment guide (free tier)
 
-This guide deploys Jaanch on free plans:
+Jaanch is a website: one API service (which can also serve the web app) and a Postgres database.
+This guide deploys it on free plans:
 
-| Piece                                       | Provider                                        | Why                                                                               |
-| ------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------- |
-| API + WhatsApp webhook + worker (+ web app) | **Render** free web service (Docker, Singapore) | Long-running process for the worker; HTTPS URL for the webhook                    |
-| Database                                    | **Neon** free Postgres (Singapore)              | Does not expire (Render's free Postgres is deleted after 30 days); scales to zero |
-| Web app (optional, recommended)             | **Vercel** Hobby                                | Always fast even while the Render service is asleep                               |
-| Daily data refresh (optional)               | **GitHub Actions**                              | Free scheduled jobs; the server also refreshes on boot                            |
-| WhatsApp                                    | **Meta WhatsApp Cloud API** (free test number)  | Free-form replies; no message cap for testing; up to 5 registered testers         |
-| AI reading                                  | **NVIDIA** API catalog (build.nvidia.com)       | Vision + text models, Hindi speech-to-text                                        |
+| Piece                           | Provider                                        | Why                                                                               |
+| ------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| API + worker (+ web app)        | **Render** free web service (Docker, Singapore) | Long-running process for the background worker; HTTPS out of the box              |
+| Database                        | **Neon** free Postgres (Singapore)              | Does not expire (Render's free Postgres is deleted after 30 days); scales to zero |
+| Web app (optional, recommended) | **Vercel** Hobby                                | Loads instantly even while the Render service is asleep                           |
+| Daily data refresh (optional)   | **GitHub Actions**                              | Free scheduled jobs; the server also refreshes on boot                            |
+| AI reading                      | **NVIDIA** API catalog (build.nvidia.com)       | Vision + text models, Hindi speech-to-text                                        |
 
 > **Before real users:** the NVIDIA API catalog's trial terms do not allow production use or
-> personal data, and Meta's test number answers only the phone numbers you register. Both are fine
-> for the prototype and the demo. See [trust-and-safety.md](trust-and-safety.md).
-
-**Why not Twilio's free trial?** Twilio trial accounts get a template-only "Try out WhatsApp" flow:
-messages can be received, but replies must be one of Twilio's fixed templates, so Jaanch cannot
-send its report. Twilio's classic sandbox (free-form replies) needs an upgraded, paid account.
-Jaanch still supports Twilio — see [Twilio instead of Meta](#twilio-instead-of-meta).
+> personal data. It is fine for the prototype and the demo. See
+> [trust-and-safety.md](trust-and-safety.md).
 
 ## 1. Accounts you need
 
-1. **GitHub** — to host the repository (Render and Vercel deploy from it).
+1. **GitHub** — the repository (Render and Vercel deploy from it).
 2. **Neon** — https://neon.tech (sign up with GitHub).
 3. **Render** — https://render.com (sign up with GitHub).
 4. **Vercel** — https://vercel.com (optional; Hobby plan is for non-commercial use).
-5. **Meta for Developers** — https://developers.facebook.com (log in with Facebook).
-6. **NVIDIA** — https://build.nvidia.com (API key).
+5. **NVIDIA** — https://build.nvidia.com (API key).
 
 ## 2. Credentials and where they go
 
-| Variable                  | Where to get it                                                                      | Local `.env` | Render                     | GitHub Actions secret |
-| ------------------------- | ------------------------------------------------------------------------------------ | ------------ | -------------------------- | --------------------- |
-| `NVIDIA_API_KEY`          | build.nvidia.com → profile → API Keys → Generate                                     | ✓            | ✓                          | —                     |
-| `DATABASE_URL`            | Neon → project → Connection string (direct, not "pooled"), `?sslmode=require`        | optional     | ✓                          | ✓ (daily refresh)     |
-| `APP_SECRET`              | `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`     | optional     | generated by `render.yaml` | —                     |
-| `ADMIN_TOKEN`             | same command                                                                         | optional     | generated                  | —                     |
-| `META_WA_ACCESS_TOKEN`    | Meta app → WhatsApp → API Setup → Generate access token (temporary); see §6.3        | ✓            | ✓ (system-user token)      | —                     |
-| `META_WA_PHONE_NUMBER_ID` | Meta app → WhatsApp → API Setup → "Phone number ID"                                  | ✓            | ✓                          | —                     |
-| `META_APP_SECRET`         | Meta app → App settings → Basic → App secret → Show                                  | ✓            | ✓                          | —                     |
-| `META_WA_VERIFY_TOKEN`    | Any random string (e.g. the `APP_SECRET` command); entered again in the webhook form | ✓            | generated                  | —                     |
-| `PUBLIC_BASE_URL`         | Your Render URL, e.g. `https://jaanch-api.onrender.com` (locally: your tunnel URL)   | ✓            | ✓                          | —                     |
-| `WEB_BASE_URL`            | Your Vercel URL if the web app is hosted there                                       | —            | ✓                          | —                     |
+| Variable          | Where to get it                                                                  | Local `.env` | Render                     | GitHub Actions secret |
+| ----------------- | -------------------------------------------------------------------------------- | ------------ | -------------------------- | --------------------- |
+| `NVIDIA_API_KEY`  | build.nvidia.com → profile → API Keys → Generate                                 | ✓            | ✓                          | —                     |
+| `DATABASE_URL`    | Neon → project → Connection string (direct, not "pooled"), `?sslmode=require`    | optional     | ✓                          | ✓ (daily refresh)     |
+| `APP_SECRET`      | `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` | optional     | generated by `render.yaml` | —                     |
+| `ADMIN_TOKEN`     | same command                                                                     | optional     | generated                  | —                     |
+| `PUBLIC_BASE_URL` | Your Render URL, e.g. `https://jaanch-api.onrender.com`                          | —            | ✓                          | —                     |
+| `WEB_BASE_URL`    | Your Vercel URL if the web app is hosted there                                   | —            | ✓                          | —                     |
 
 All variables are documented in [`.env.example`](../.env.example) and validated at start-up.
 
@@ -59,17 +49,15 @@ reading.
 
 ## 4. Backend on Render
 
-1. Push the repository to GitHub (Render deploys from a repository you own).
-2. Render dashboard → **New → Blueprint** → select the repository. Render reads
+1. Render dashboard → **New → Blueprint** → select the repository. Render reads
    [`render.yaml`](../render.yaml): one free Docker web service in Singapore with a health check
    on `/healthz`.
-3. Fill the variables marked `sync: false`: `PUBLIC_BASE_URL` (you can fill it after the first
-   deploy shows the URL), `DATABASE_URL`, `NVIDIA_API_KEY`, `META_WA_ACCESS_TOKEN`,
-   `META_WA_PHONE_NUMBER_ID`, `META_APP_SECRET`, and `WEB_BASE_URL` if using Vercel.
-4. Deploy. The first boot runs migrations and, because no snapshot exists, ingests SEBI's
+2. Fill the variables marked `sync: false`: `PUBLIC_BASE_URL` (fill it after the first deploy shows
+   the URL, then redeploy), `DATABASE_URL`, `NVIDIA_API_KEY`, and `WEB_BASE_URL` if using Vercel.
+3. Deploy. The first boot runs migrations and, because no snapshot exists, ingests SEBI's
    registers and the RBI Alert List in the background (about a minute). Watch the logs for
    `ingestion finished`.
-5. Verify:
+4. Verify:
    - `https://<service>.onrender.com/healthz` → `{"ok":true,...}`
    - `https://<service>.onrender.com/api/v1/sources` → SEBI categories with today's/yesterday's date
    - Logs show `language model available` for each configured model (a `not available` warning
@@ -77,15 +65,14 @@ reading.
      `pnpm --filter @jaanch/llm probe`).
 
 **Free-plan behaviour.** The service sleeps after 15 minutes without traffic and takes about a
-minute to wake. A WhatsApp message sent while it sleeps is not lost: Meta retries webhook delivery
-until it succeeds (for up to 7 days), so the reply is delayed rather than dropped. For a demo, open
-`/healthz` a few minutes beforehand. (Keeping a free service awake with an external pinger is a
-grey area under Render's terms; the paid Starter plan removes sleeping.)
+minute to wake; the first investigation after idle waits for it. For a demo, open `/healthz` a few
+minutes beforehand. (Keeping a free service awake with an external pinger is a grey area under
+Render's terms; the paid Starter plan removes sleeping.)
 
 ## 5. Web app
 
-**Option A — served by Render (simplest).** Nothing to do: the Docker image includes the built
-web app at the service URL. Downside: the first visit after idle waits for the cold start.
+**Option A — served by Render (simplest).** Nothing to do: the Docker image includes the built web
+app at the service URL. Downside: the first visit after idle waits for the cold start.
 
 **Option B — Vercel (recommended for demos).**
 
@@ -93,81 +80,25 @@ web app at the service URL. Downside: the first visit after idle waits for the c
 2. In [`apps/web/vercel.json`](../apps/web/vercel.json), replace
    `REPLACE-WITH-YOUR-RENDER-SERVICE` with your Render service name, commit and push. API calls
    are proxied to Render, so the browser sees one origin (no CORS setup).
-3. Deploy, then set `WEB_BASE_URL=https://<your-project>.vercel.app` on Render so WhatsApp report
-   links open the Vercel site.
+3. Deploy, then set `WEB_BASE_URL=https://<your-project>.vercel.app` on Render so links in reports
+   and evidence summaries point at the Vercel site.
 
-## 6. WhatsApp: Meta Cloud API
-
-### 6.1 Create the app and get the test number
-
-1. https://developers.facebook.com → **My Apps → Create App**.
-2. Use case **"Connect with customers through WhatsApp"** → select or create a **business
-   portfolio** → **Create app**.
-3. **WhatsApp → API Setup**. Meta provides a free test number. Note:
-   - **Phone number ID** → `META_WA_PHONE_NUMBER_ID`
-   - **Generate access token** → `META_WA_ACCESS_TOKEN` (temporary — expires within a day; fine
-     for local testing, see §6.3 for deployment)
-   - **To → Manage phone number list**: add each tester's WhatsApp number (up to 5) and enter the
-     code WhatsApp sends them. The test number only messages these numbers.
-4. **App settings → Basic → App secret → Show** → `META_APP_SECRET`.
-
-### 6.2 Connect the webhook
-
-1. Make sure the server is running with `PUBLIC_BASE_URL` set and `META_WA_VERIFY_TOKEN` set.
-2. Meta app → **WhatsApp → Configuration → Webhook → Edit**:
-   - **Callback URL**: `https://<service>.onrender.com/webhooks/meta/whatsapp`
-   - **Verify token**: the value of `META_WA_VERIFY_TOKEN`
-   - **Verify and save** (Meta calls the URL; Jaanch answers only if the token matches).
-3. **Webhook fields → Manage → `messages` → Subscribe.**
-4. Test from a registered phone: send `HELP` to the test number → the welcome comes back. Forward
-   a message → "Checking…", then the report.
-
-Every webhook is checked against `X-Hub-Signature-256` (HMAC-SHA256 of the body with the App
-Secret); a wrong or missing signature gets 403. Users must message first: replies are allowed for
-24 hours after a user's last message, and Jaanch only ever replies.
-
-### 6.3 A token that doesn't expire (for deployment)
-
-1. https://business.facebook.com → **Settings → Users → System users → Add** (role: Admin).
-2. **Assign assets**: your app (full control) and your WhatsApp account (full control).
-3. **Generate new token** → select the app → permissions `whatsapp_business_messaging` and
-   `whatsapp_business_management` → expiry **Never** → copy it into Render's
-   `META_WA_ACCESS_TOKEN`.
-
-**Moving beyond the test number later:** add your own phone number under WhatsApp → API Setup,
-complete Meta business verification and display-name approval. Configuration only — the code and
-webhook stay the same.
-
-### Twilio instead of Meta
-
-Set `WHATSAPP_PROVIDER=twilio` and `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
-`TWILIO_WHATSAPP_FROM` (`whatsapp:+14155238886` for the sandbox) and `TWILIO_SANDBOX_JOIN_CODE`.
-This needs an **upgraded** Twilio account (the classic sandbox is not available to trial accounts).
-In the legacy console's **Messaging → Try it out → Send a WhatsApp message → Sandbox settings**,
-set _When a message comes in_ to `https://<service>.onrender.com/webhooks/twilio/whatsapp` (POST)
-and _Status callback URL_ to `…/webhooks/twilio/status`; `PUBLIC_BASE_URL` must match exactly, as
-Twilio signs the URL it calls. Sandbox limits: one message per 3 seconds (paced automatically) and
-users re-send the join phrase every 3 days. Twilio cold starts are covered by a boot-time catch-up
-that lists recent inbound messages.
-
-## 7. Domain (optional)
+## 6. Domain (optional)
 
 Add a custom domain in Render (API) and/or Vercel (web), then update `PUBLIC_BASE_URL`,
-`WEB_BASE_URL`, the webhook callback URL and `apps/web/vercel.json`.
+`WEB_BASE_URL` and `apps/web/vercel.json`.
 
-## 8. Production security checklist
+## 7. Production security checklist
 
-- [ ] `NODE_ENV=production` (the server refuses to start without `APP_SECRET`, with fixture data
-      or with webhook signature checks disabled).
-- [ ] `APP_SECRET` and `META_APP_SECRET` exist only in Render's environment.
-- [ ] `META_VALIDATE_SIGNATURE=true` (default; required in production).
-- [ ] The access token is a system-user token, not a temporary one.
+- [ ] `NODE_ENV=production` (the server refuses to start without `APP_SECRET` or with fixture
+      data).
+- [ ] `APP_SECRET` is random and only in Render's environment.
 - [ ] `ADMIN_TOKEN` set only if you use `/admin/*`; keep it secret.
 - [ ] `CORS_ORIGINS` empty unless a browser app on another origin calls the API directly.
 - [ ] No `.env` committed (`git status` must not list it).
-- [ ] Credentials that were ever pasted into chats or tickets have been rotated.
+- [ ] Keys that were ever pasted into chats or tickets have been rotated.
 
-## 9. Daily data refresh (optional)
+## 8. Daily data refresh (optional)
 
 The server refreshes snapshots older than 24 hours whenever it boots. For a guaranteed daily
 refresh while the service sleeps, enable [`.github/workflows/ingest.yml`](../.github/workflows/ingest.yml):
@@ -176,45 +107,45 @@ daily at 02:37 IST and can be started by hand (Actions → Refresh official data
 Alternatively call `POST /admin/ingest` with `Authorization: Bearer <ADMIN_TOKEN>` from any
 scheduler.
 
-## 10. Smoke test after every deploy
+## 9. Smoke test after every deploy
 
 ```bash
 API=https://<service>.onrender.com
 curl -s $API/healthz
 curl -s $API/readyz
 curl -s $API/api/v1/sources | head -c 400
-curl -s "$API/webhooks/meta/whatsapp?hub.mode=subscribe&hub.verify_token=<META_WA_VERIFY_TOKEN>&hub.challenge=ok"   # → ok
 curl -s -X POST $API/api/v1/investigations -H 'content-type: application/json' \
   -d '{"text":"SEBI Registered RA, Reg No INH000011431. Guaranteed 30% monthly returns. Pay to 9876501234@ybl","locale":"en"}'
 # then GET $API/api/v1/investigations/<id> until "status":"completed"
 ```
 
-Then on WhatsApp from a registered number: `HELP`, a forwarded message, `PAID`, `HINDI`, `DELETE`.
+Then in a browser: upload `demo/screenshots/scam-en.png`, switch to Hindi, open **I already
+paid**, copy the evidence summary, delete the report.
 
-## 11. Rollback and troubleshooting
+## 10. Rollback and troubleshooting
 
-| Symptom                                   | Check                                                                        | Fix                                                                                      |
-| ----------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Deploy fails health check                 | Render logs: configuration errors are printed at start-up                    | Set the missing variable                                                                 |
-| Meta: "callback URL couldn't be verified" | Service awake? `META_WA_VERIFY_TOKEN` identical in both places?              | Open `/healthz` first, then retry **Verify and save**                                    |
-| WhatsApp: no reply at all                 | Logs: `rejected webhook with invalid Meta signature`? `messages` subscribed? | Fix `META_APP_SECRET`; subscribe the `messages` webhook field                            |
-| Logs: `meta 190` or `meta 0`              | Access token expired or invalid                                              | Generate a new token (§6.1) or use a system-user token (§6.3)                            |
-| Logs: `meta 131030`                       | The recipient isn't registered for the test number                           | Add the number under API Setup → To → Manage phone number list                           |
-| Logs: `meta 131047`                       | More than 24 hours since the user's last message                             | The user sends any message first                                                         |
-| Screenshots "couldn't be read"            | Logs: `language model … not available` or `model request attempt failed`     | Run the probe and set live model IDs; repeated stalls are on the hosted endpoint's side  |
-| Old "as of" dates in reports              | `/api/v1/sources`                                                            | `POST /admin/ingest` or restart the service                                              |
-| Database suspended                        | Neon dashboard: compute quota                                                | Wait for the monthly reset or reduce traffic; the worker makes no idle queries           |
-| Bad release                               | Render → Deploys                                                             | **Rollback** to the previous deploy (migrations are additive; no down-migrations needed) |
+| Symptom                        | Check                                                                    | Fix                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Deploy fails health check      | Render logs: configuration errors are printed at start-up                | Set the missing variable                                                                 |
+| Screenshots "couldn't be read" | Logs: `language model … not available` or `model request attempt failed` | Run the probe and set live model IDs; repeated stalls are on the hosted endpoint's side  |
+| First report very slow         | The service was asleep                                                   | Expected on the free plan; open `/healthz` before demos                                  |
+| Old "as of" dates in reports   | `/api/v1/sources`                                                        | `POST /admin/ingest` or restart the service                                              |
+| Database suspended             | Neon dashboard: compute quota                                            | Wait for the monthly reset or reduce traffic; the worker makes no idle queries           |
+| Bad release                    | Render → Deploys                                                         | **Rollback** to the previous deploy (migrations are additive; no down-migrations needed) |
 
-## Local development with a public webhook
+## Local development
 
 ```bash
 pnpm install
-cp .env.example .env              # add NVIDIA_API_KEY and the META_* values
-pnpm --filter @jaanch/web build   # so report links on the tunnel URL open the web app
-pnpm tunnel                       # cloudflared quick tunnel → https://<random>.trycloudflare.com
+cp .env.example .env    # add NVIDIA_API_KEY
+pnpm dev                # API http://localhost:8787 · web http://localhost:5173
 ```
 
-Set `PUBLIC_BASE_URL` in `.env` to the tunnel URL, run `pnpm dev`, and enter
-`https://<random>.trycloudflare.com/webhooks/meta/whatsapp` with your verify token in the Meta
-webhook settings (§6.2). Quick-tunnel URLs change on every run, so re-enter the URL each time.
+## WhatsApp (not enabled)
+
+The codebase contains a WhatsApp channel (Meta Cloud API and Twilio adapters, with tests), off by
+default (`WHATSAPP_PROVIDER=none`). It is not part of the product: Meta's Cloud API blocks
+delivery until the business completes Meta business verification (official business documents)
+and adds a payment method, and Twilio's WhatsApp sandbox requires a paid account (trials are
+template-only). A registered business could enable it later with `WHATSAPP_PROVIDER=meta` and the
+`META_*` variables in `.env.example`.

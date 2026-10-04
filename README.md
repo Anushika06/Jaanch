@@ -1,10 +1,11 @@
 # Jaanch · जाँच
 
-**Forward it. Jaanch investigates it.**
+**Paste it. Jaanch investigates it.**
 
-Jaanch checks the claims in an investment message — a WhatsApp forward, a screenshot, a link, a
-voice note — against India's official records before you send money. Every claim gets a verdict
-backed by evidence you can open on the regulator's own website. In English and Hindi.
+Jaanch is a website that checks the claims in an investment message — pasted text, chat
+screenshots, a link or a voice note — against India's official records before you send money.
+Every claim gets a verdict backed by evidence you can open on the regulator's own website. In
+English and Hindi.
 
 > Jaanch does not give investment advice, and never rates anything "safe" or "scam".
 
@@ -12,11 +13,10 @@ backed by evidence you can open on the regulator's own website. In English and H
 
 ## The problem
 
-Investment pitches borrow credibility: a **real SEBI registration number that belongs to someone
-else**, "SEBI approved" tips, guaranteed returns, "institutional accounts", a personal UPI ID, an
-APK link, "offer valid today only". Checking them needs knowledge of SEBI's registers and rules
-that most retail investors don't have — and the check has to happen on WhatsApp, where the pitch
-arrived.
+Investment pitches on WhatsApp, Telegram and SMS borrow credibility: a **real SEBI registration
+number that belongs to someone else**, "SEBI approved" tips, guaranteed returns, "institutional
+accounts", a personal UPI ID, an APK link, "offer valid today only". Checking them needs knowledge
+of SEBI's registers and rules that most retail investors don't have.
 
 ## What Jaanch does
 
@@ -41,7 +41,7 @@ arrived.
 > different name.
 
 Jaanch checks whether the _party contacting you_ is the _party the record belongs to_ — not only
-whether a number exists.
+whether a number exists. (Live output from a screenshot of the demo pitch, about 30 seconds.)
 
 ## How it works
 
@@ -51,24 +51,28 @@ flowchart LR
   B --> C[Tools verify<br/>SEBI registers · inactive list<br/>RBI Alert List · RDAP · rule table]
   C --> D[Code adjudicates<br/>4 verdicts, deterministic]
   D --> E[LLM explains<br/>templates EN/HI ·<br/>guarded summary]
-  E --> F[WhatsApp reply<br/>+ web report]
+  E --> F[Web report<br/>evidence, sources, next steps]
 ```
 
 - The model only **reads**; every quote and identifier it returns must be found in the message
   or it is discarded. **It never decides a verdict.**
-- Unclear screenshots and voice notes can never produce a CONTRADICTED verdict.
+- A rule can contradict a claim only when deterministic patterns confirm the claim's wording;
+  unclear screenshots and voice notes can never produce CONTRADICTED.
 - Every factual sentence comes from a reviewed English/Hindi template with values inserted
   verbatim.
 
-## Interfaces
+## The website
 
-| Channel                                                                | What it's for                                                                                                                                      |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **WhatsApp** (Meta Cloud API test number today; Twilio also supported) | The primary channel: forward the pitch, get verdicts + next steps, usually within a minute; `PAID` / `HINDI` / `DELETE` commands                   |
-| **Web**                                                                | Full evidence report, Hindi/English switch, screenshot upload, "I already paid" page, shareable link — and the fallback if WhatsApp is unavailable |
+- Paste text, upload up to 5 chat screenshots (compressed in the browser), add a link or record a
+  voice note; live progress while it checks (usually under a minute).
+- Full report: claim stamps, evidence with official links and as-of dates, the binding table,
+  warning signs, could-not-check, next steps; Hindi/English switch; shareable link; copyable
+  evidence summary; "I already paid" page; delete button.
+- No account, no app install; installable web app with an Android share target.
 
-Both are thin adapters over the same engine; the web renders server-built views and contains no
-investigation logic.
+Why web-only: a WhatsApp channel was built and tested, but both providers require a verified or
+paid business account — see [docs/technical-decisions.md](docs/technical-decisions.md). The code
+remains, off by default.
 
 ## Architecture
 
@@ -79,7 +83,7 @@ packages/core      engine: schemas, extraction, claims, adjudication, rules, tem
 packages/db        Postgres (node-postgres in production, embedded PGlite in dev/tests), queue
 packages/sources   SEBI registers (Excel export + live + inactive), RBI Alert List, RDAP
 packages/llm       NVIDIA NIM reader/extractor/narrator, Riva speech-to-text, model probe
-apps/server        Fastify API, WhatsApp channel (Meta Cloud API / Twilio), event-driven worker, CLI
+apps/server        Fastify API, event-driven worker, CLI (WhatsApp adapters, disabled)
 apps/web           React web app
 ```
 
@@ -90,8 +94,8 @@ Details: [docs/architecture.md](docs/architecture.md) · decisions and trade-off
 
 - No overall score; no accusations ("the message says X, the record shows Y"); no advice.
 - Screenshots and voice notes deleted right after reading; reports kept 7 days or deleted on
-  request; no phone numbers or IPs stored (HMACs only); the requester's own number is redacted.
-- WhatsApp webhook signatures verified; uploads validated by content; links in messages are never opened.
+  request; no account, and IP addresses are never stored (rate limits use HMACs).
+- Uploads validated by content and re-encoded (EXIF stripped); links in messages are never opened.
 - **Prototype caveat:** screenshots are read by NVIDIA's hosted API catalog, whose trial terms
   don't allow production use or personal data.
 
@@ -99,11 +103,11 @@ More: [docs/trust-and-safety.md](docs/trust-and-safety.md).
 
 ## Setup
 
-Requirements: Node.js 22+, pnpm 10 (`corepack enable`). Optional: Docker, cloudflared.
+Requirements: Node.js 22+, pnpm 10 (`corepack enable`). Optional: Docker.
 
 ```bash
 pnpm install
-cp .env.example .env     # add NVIDIA_API_KEY (and the META_* values for WhatsApp)
+cp .env.example .env     # add NVIDIA_API_KEY
 pnpm dev                 # API http://localhost:8787 · web http://localhost:5173
 ```
 
@@ -124,35 +128,21 @@ SOURCE_MODE=fixture pnpm dev                       # offline, FICTIONAL data (cl
 
 The essentials (full list with comments in [.env.example](.env.example)):
 
-| Variable                                                                                     | Purpose                                                  |
-| -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `NVIDIA_API_KEY`                                                                             | Reading screenshots, extracting claims, voice notes      |
-| `DATABASE_URL`                                                                               | Postgres in production (empty = embedded database)       |
-| `APP_SECRET`                                                                                 | Keys for hashing and encryption (required in production) |
-| `PUBLIC_BASE_URL` / `WEB_BASE_URL`                                                           | Public URLs for webhook signatures and report links      |
-| `META_WA_ACCESS_TOKEN`, `META_WA_PHONE_NUMBER_ID`, `META_APP_SECRET`, `META_WA_VERIFY_TOKEN` | WhatsApp channel (Meta Cloud API; Twilio also supported) |
-| `LLM_VISION_MODEL`, `LLM_TEXT_MODEL`                                                         | Override model choice (hosted models change often)       |
+| Variable                             | Purpose                                                  |
+| ------------------------------------ | -------------------------------------------------------- |
+| `NVIDIA_API_KEY`                     | Reading screenshots, extracting claims, voice notes      |
+| `DATABASE_URL`                       | Postgres in production (empty = embedded database)       |
+| `APP_SECRET`                         | Keys for hashing and encryption (required in production) |
+| `PUBLIC_BASE_URL` / `WEB_BASE_URL`   | Public URLs for report links                             |
+| `LLM_VISION_MODEL`, `LLM_TEXT_MODEL` | Override model choice (hosted models change often)       |
 
-### WhatsApp locally (Meta test number)
-
-```bash
-pnpm tunnel   # prints https://<random>.trycloudflare.com
-```
-
-Set `PUBLIC_BASE_URL` to that URL and restart. In the Meta app, **WhatsApp → Configuration →
-Webhook**, set the callback URL to `<tunnel>/webhooks/meta/whatsapp` with your
-`META_WA_VERIFY_TOKEN`, and subscribe to the `messages` field. From a registered phone, send
-`HELP` to the test number. Step-by-step: [docs/deployment.md](docs/deployment.md#6-whatsapp-meta-cloud-api).
-
-### Web
-
-`pnpm dev:web` runs the Vite dev server (proxying `/api` to `:8787`). `pnpm build` builds the web
-app into `apps/web/dist`, which the API server also serves.
+`pnpm dev:web` runs only the Vite dev server (proxying `/api` to `:8787`); `pnpm build` builds the
+web app into `apps/web/dist`, which the API server also serves.
 
 ## Deployment
 
 Free tier: Render (Docker web service) + Neon (Postgres) + optional Vercel (web) + optional
-GitHub Actions (daily data refresh). One-click blueprint in [render.yaml](render.yaml); the full
+GitHub Actions (daily data refresh). Blueprint in [render.yaml](render.yaml); the full
 walkthrough, security checklist and troubleshooting are in [docs/deployment.md](docs/deployment.md).
 
 ## Testing
@@ -165,9 +155,9 @@ pnpm typecheck && pnpm lint
 
 The suite covers the ten required scenarios (impersonation, legitimate entity, ambiguous sender,
 missing registration number, OCR error, unavailable source, malicious links, suspicious UPI,
-guaranteed returns, legitimate financial wording), prompt injection, webhook signatures and
-idempotency, upload validation, English/Hindi parity and WhatsApp length limits. The database
-suite also runs against a real Postgres (`JAANCH_TEST_DATABASE_URL`).
+guaranteed returns, legitimate financial wording), prompt injection, model misclassification
+guards, upload validation, API flows and English/Hindi parity. The database suite also runs
+against a real Postgres (`JAANCH_TEST_DATABASE_URL`).
 
 ## Demo
 
@@ -177,23 +167,23 @@ A four-minute product demo script with dialogue, screen actions and backup paths
 
 ## Documentation
 
-| Document                                                                             |                                                              |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| [Product explainer](docs/product-explainer.md) ([HTML](docs/product-explainer.html)) | What Jaanch is and isn't                                     |
-| [Architecture](docs/architecture.md) ([HTML](docs/architecture.html))                | Components, pipeline, data, failure behaviour                |
-| [User workflows](docs/user-workflow.md) ([HTML](docs/user-workflow.html))            | WhatsApp, web, "I already paid"                              |
-| [Demo video script](docs/demo-video-script.md) ([HTML](docs/demo-video-script.html)) | Production script                                            |
-| [Trust and safety](docs/trust-and-safety.md)                                         | AI safety, privacy, security, limitations                    |
-| [Technical decisions](docs/technical-decisions.md)                                   | Alternatives and reasons                                     |
-| [Deployment](docs/deployment.md)                                                     | Free-tier deployment, WhatsApp (Meta) setup, troubleshooting |
+| Document                                                                             | Contents                                      |
+| ------------------------------------------------------------------------------------ | --------------------------------------------- |
+| [Product explainer](docs/product-explainer.md) ([HTML](docs/product-explainer.html)) | What Jaanch is and isn't                      |
+| [Architecture](docs/architecture.md) ([HTML](docs/architecture.html))                | Components, pipeline, data, failure behaviour |
+| [User workflows](docs/user-workflow.md) ([HTML](docs/user-workflow.html))            | Checking a message, "I already paid"          |
+| [Demo video script](docs/demo-video-script.md) ([HTML](docs/demo-video-script.html)) | Production script                             |
+| [Trust and safety](docs/trust-and-safety.md)                                         | AI safety, privacy, security, limitations     |
+| [Technical decisions](docs/technical-decisions.md)                                   | Alternatives and reasons                      |
+| [Deployment](docs/deployment.md)                                                     | Free-tier deployment, troubleshooting         |
 
 ## Roadmap
 
-- Production WhatsApp sender and a model provider with production data terms (self-hosted NIM).
+- A model provider with production data terms (self-hosted NIM or a paid endpoint).
 - NSE/BSE caution notices and SEBI's unregistered-entity orders as sources.
 - AMFI mutual-fund distributor (ARN) verification; exchange Authorised Person lookups.
 - More Indian languages, with hand-reviewed templates per language.
-- Voice replies for low-literacy users, generated from the same templates.
+- A WhatsApp channel once a verified business account is available (adapters already built).
 - Anonymous, aggregate signals (e.g. which registration numbers are being impersonated) shared
   with regulators — without personal data.
 

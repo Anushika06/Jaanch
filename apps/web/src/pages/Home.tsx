@@ -1,5 +1,5 @@
 import { Composer } from '../components/Composer';
-import { HowItWorks, SourcesPanel, VerdictLegend, WhatsAppPanel } from '../components/HomeSections';
+import { HowItWorks, SourcesPanel, VerdictLegend } from '../components/HomeSections';
 import { useApp } from '../context';
 
 export function Home() {
@@ -19,7 +19,6 @@ export function Home() {
         <Composer initialText={sharedText} initialUrl={sharedUrl} />
         <p className="hero__note">{t('notAdvice')}</p>
       </section>
-      <WhatsAppPanel />
       <HowItWorks />
       <VerdictLegend />
       <SourcesPanel />

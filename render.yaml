@@ -25,18 +25,6 @@ services:
         generateValue: true
       - key: NVIDIA_API_KEY
         sync: false
-      # WhatsApp via Meta's Cloud API. (For Twilio instead, set WHATSAPP_PROVIDER=twilio and the
-      # TWILIO_* variables listed in .env.example.)
-      - key: WHATSAPP_PROVIDER
-        value: meta
-      - key: META_WA_ACCESS_TOKEN
-        sync: false # system-user token (the API Setup page's temporary token expires within a day)
-      - key: META_WA_PHONE_NUMBER_ID
-        sync: false
-      - key: META_APP_SECRET
-        sync: false
-      - key: META_WA_VERIFY_TOKEN
-        generateValue: true # copy it into the app's webhook settings after the first deploy
       - key: INGEST_ON_BOOT
         value: auto
       - key: WORKER_CONCURRENCY

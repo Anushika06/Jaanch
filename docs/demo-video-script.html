@@ -27,40 +27,43 @@
 <main>
 <p class="back"><a href="../README.md">Jaanch</a> · documentation</p>
 <h1>Demo video — production script (4:00)</h1>
-<p>A product demo, not a slide talk: the viewer watches a person use Jaanch on a real phone and a
-real browser, against live official data. Technical points come up only where the screen shows
-them.</p>
+<p>A product demo, not a slide talk: the viewer watches a person use the Jaanch website on a real
+phone and a laptop, against live official data. Technical points come up only where the screen
+shows them.</p>
 <p><strong>Cast.</strong> <em>Narrator</em> (voice-over, calm, plain English with a few Hindi phrases). <em>Riya</em> — the
 person using the phone (hands only, or a face cam in the corner).</p>
-<p><strong>Screens.</strong> Phone screen recording (WhatsApp) mirrored to the laptop; browser at
-<code>https://&lt;your-domain&gt;</code>; one architecture diagram (from <a href="architecture.html">architecture.md</a>).</p>
+<p><strong>Screens.</strong> Phone screen recording (WhatsApp chat + mobile browser) mirrored to the laptop; laptop
+browser at <code>https://&lt;your-domain&gt;</code>; one architecture diagram (from
+<a href="architecture.html">architecture.md</a>).</p>
 <p><strong>Assets</strong> (in the repository):</p>
 <ul>
 <li><code>demo/screenshots/scam-en.png</code> — the &quot;Sharma Investments&quot; pitch (English)</li>
 <li><code>demo/screenshots/scam-hi.png</code> — the same pitch in Hindi</li>
 <li><code>demo/screenshots/institutional.png</code> — an &quot;institutional account / FPI / APK&quot; pitch</li>
-<li>The &quot;SIP reminder&quot; sample on the web home page; optionally a genuine message the team received
-from its own broker or mutual fund.</li>
+<li>The &quot;SIP reminder&quot; sample on the home page; optionally a genuine message the team received from
+its own broker or mutual fund.</li>
 </ul>
 <blockquote>
 <p><strong>About the registration number in the demo screenshots.</strong> <code>INH000011431</code> is a real, current
 SEBI registration (it belongs to 360 ONE Distribution Services Limited). It is used to show how
 impersonators borrow real numbers; the registered firm has no connection to these fictional
-messages. Say this on screen at 0:55. To use a different number, edit
-<code>demo/chat-mock.html</code> and re-capture the screenshots.</p>
+messages. Say this on screen at 0:55. To use a different number, edit <code>demo/chat-mock.html</code> and
+re-capture the screenshots.</p>
 </blockquote>
 <hr>
 <h2>Pre-flight (30 minutes before recording)</h2>
 <ol>
-<li><strong>WhatsApp:</strong> the demo phone must be registered as a tester in the Meta app (WhatsApp → API
-Setup → To). Send <code>HELP</code> and confirm a reply arrives — this also opens the 24-hour reply window.
-If the access token is a temporary one, generate a fresh token first (they expire within a day).</li>
-<li><strong>Warm the server:</strong> open <code>https://&lt;api&gt;/healthz</code> (free hosting sleeps after 15 minutes idle).</li>
+<li><strong>Warm the server:</strong> open <code>https://&lt;api&gt;/healthz</code> (free hosting sleeps after 15 minutes idle).
+If the web app is on Vercel, it loads instantly; the first investigation may still wait for
+the API to wake.</li>
 <li><strong>Fresh data:</strong> <code>GET /api/v1/sources</code> — SEBI categories should show today&#39;s or yesterday&#39;s date.
 If not: <code>POST /admin/ingest</code> with the admin token, wait a minute.</li>
-<li><strong>Dry run</strong> every segment once (this also warms caches). Note each report URL as a backup.</li>
-<li>Phone: Do Not Disturb on, battery &gt; 50%, font size default, dark mode off (for contrast).</li>
-<li>Browser: zoom 125%, one tab, bookmarks bar hidden, language set to English.</li>
+<li><strong>Dry run</strong> every segment once (this also warms the AI models). Note each report URL as a
+backup.</li>
+<li>Put <code>scam-en.png</code> in the phone&#39;s gallery (as if Riya had taken the screenshot herself) and
+<code>scam-hi.png</code> on the laptop.</li>
+<li>Phone: Do Not Disturb on, battery &gt; 50%, font size default. Browser: zoom 125%, one tab,
+bookmarks bar hidden, language English.</li>
 </ol>
 <hr>
 <h2>0:00 – 0:20 · Hook</h2>
@@ -85,14 +88,14 @@ If not: <code>POST /admin/ingest</code> with the admin token, wait a minute.</li
 </tr>
 <tr>
 <td><strong>Transition</strong></td>
-<td>Cut to the phone, Riya long-presses the screenshot.</td>
+<td>Riya takes a screenshot of the chat.</td>
 </tr>
 <tr>
 <td><strong>Viewer should notice</strong></td>
 <td>The pitch looks credible precisely because one part of it is true.</td>
 </tr>
 </tbody></table>
-<h2>0:20 – 1:35 · Live investigation on WhatsApp</h2>
+<h2>0:20 – 1:35 · Live investigation on the phone</h2>
 <table>
 <thead>
 <tr>
@@ -104,19 +107,19 @@ If not: <code>POST /admin/ingest</code> with the admin token, wait a minute.</li
 </thead>
 <tbody><tr>
 <td>0:20</td>
-<td>Riya forwards the screenshot to the chat named <strong>Jaanch</strong>.</td>
-<td>&quot;Riya does what she does with everything on WhatsApp: she forwards it — to Jaanch.&quot;</td>
-<td>No app, no website.</td>
+<td>Riya opens the Jaanch website on her phone, taps <strong>Add screenshot</strong>, picks the screenshot, taps <strong>Investigate</strong>.</td>
+<td>&quot;Before paying, Riya opens Jaanch. No app, no sign-up — she uploads the screenshot.&quot;</td>
+<td>One screen, one button.</td>
 </tr>
 <tr>
 <td>0:28</td>
-<td>Jaanch replies instantly: &quot;Got it. Send any more screenshots now — I will start checking in a few seconds.&quot; Riya waits.</td>
+<td>The progress list ticks through: reading the message → finding claims → checking official records → SEBI rules → writing the report.</td>
 <td>&quot;Jaanch reads the screenshot, lists every claim in it, and checks each one against official records.&quot;</td>
-<td>The acknowledgement is immediate.</td>
+<td>Each stage is shown; nothing is hidden.</td>
 </tr>
 <tr>
 <td>0:45</td>
-<td>The report arrives. Hold on the headline. Zoom on the first entry: ❌ <strong>CONTRADICTED</strong> — &quot;The message says INH000011431 belongs to Sharma Investments. SEBI&#39;s register shows INH000011431 is registered to 360 ONE Distribution Services Limited (Mumbai) — a different name.&quot;</td>
+<td>The report appears. Hold on the headline: <strong>The registration number is real. It just isn&#39;t theirs.</strong> Zoom on the first stamp: <strong>CONTRADICTED</strong> — &quot;The message says INH000011431 belongs to Sharma Investments. SEBI&#39;s register shows INH000011431 is registered to 360 ONE Distribution Services Limited (Mumbai) — a different name.&quot;</td>
 <td>&quot;First claim: the registration. The number exists — in SEBI&#39;s register it belongs to a different firm. That firm has nothing to do with this message; its number was borrowed.&quot;</td>
 <td>The wording reports the record; nobody is called a scammer.</td>
 </tr>
@@ -134,14 +137,13 @@ If not: <code>POST /admin/ingest</code> with the admin token, wait a minute.</li
 </tr>
 <tr>
 <td>1:20</td>
-<td>Tap the report link → browser opens the full report. Tap <strong>Show evidence</strong> under the first claim: the SEBI register entry with name, number, validity, official email and phone, &quot;Open the official source&quot;. Scroll to <strong>Who is contacting you, and who is registered</strong>.</td>
+<td>Tap <strong>Show evidence</strong> under the first claim: the SEBI register entry with name, number, validity, official email and phone, &quot;Open the official source&quot;. Scroll to <strong>Who is contacting you, and who is registered</strong>.</td>
 <td>&quot;Every verdict has evidence you can open on SEBI&#39;s own website. And this table is the heart of it: who is contacting you, versus who is registered. Same registration number — different name.&quot;</td>
 <td>The channel-binding table: Name <em>Different</em>, Registration <em>Same</em>.</td>
 </tr>
 </tbody></table>
-<p><strong>Backup path:</strong> if the WhatsApp reply doesn&#39;t arrive within 60 seconds (a cold start or a slow
-model response), cut to the pre-recorded dry-run clip of the same exchange, then continue live in the
-browser with the dry-run report URL.</p>
+<p><strong>Backup path:</strong> if the report takes longer than 60 seconds (a cold start or a slow model
+response), cut to the pre-recorded dry-run clip, then continue with the dry-run report URL.</p>
 <h2>1:35 – 2:10 · A legitimate message</h2>
 <table>
 <thead>
@@ -152,7 +154,7 @@ browser with the dry-run report URL.</p>
 </thead>
 <tbody><tr>
 <td><strong>Screen</strong></td>
-<td>Browser home. Click the sample <strong>SIP reminder</strong> (&quot;Your SIP of Rs 5,000 in XYZ Flexi Cap Fund will be debited… subject to market risks&quot;). Click <strong>Investigate</strong>. Report: &quot;We didn&#39;t find investment claims to check in this message.&quot; No warnings.</td>
+<td>Laptop, home page. Click the sample <strong>SIP reminder</strong> (&quot;Your SIP of Rs 5,000 in XYZ Flexi Cap Fund will be debited… subject to market risks&quot;). Click <strong>Investigate</strong>. Report: &quot;We didn&#39;t find investment claims to check in this message.&quot; No warnings.</td>
 </tr>
 <tr>
 <td><strong>Narrator</strong></td>
@@ -185,7 +187,7 @@ browser with the dry-run report URL.</p>
 </thead>
 <tbody><tr>
 <td><strong>Screen</strong></td>
-<td>Back on the phone. Riya types <strong>PAID</strong>. Reply: numbered steps — call 1930, cybercrime.gov.in, tell the bank, UPI fraud complaint, keep evidence, beware of &quot;recovery&quot; offers — and a link. Tap the link: the web recovery page with a large <strong>Call 1930</strong> button and the evidence summary. Tap <strong>Copy evidence summary</strong>; paste it into a notes app to show the text: report id, time, each claim with what SEBI&#39;s record showed, the UPI ID and phone from the message.</td>
+<td>Back on the phone report. Tap <strong>I already paid</strong>. The recovery page: a large <strong>Call 1930</strong> button, then cybercrime.gov.in, tell the bank, UPI fraud complaint, keep evidence, beware of &quot;recovery&quot; offers. Tap <strong>Copy evidence summary</strong>; paste it into a notes app to show the text: report id, time, each claim with what SEBI&#39;s record showed, the UPI ID and phone from the message.</td>
 </tr>
 <tr>
 <td><strong>Narrator</strong></td>
@@ -196,7 +198,7 @@ browser with the dry-run report URL.</p>
 <td>Routing only, nothing collected; the summary is ready to paste into 1930 / cybercrime.gov.in.</td>
 </tr>
 </tbody></table>
-<h2>2:40 – 3:15 · Same engine, on the web, in Hindi</h2>
+<h2>2:40 – 3:15 · In Hindi</h2>
 <table>
 <thead>
 <tr>
@@ -206,19 +208,19 @@ browser with the dry-run report URL.</p>
 </thead>
 <tbody><tr>
 <td><strong>Screen</strong></td>
-<td>Browser home → switch to <strong>हिंदी</strong>. Upload <code>demo/screenshots/scam-hi.png</code>. Progress list animates: &quot;मैसेज पढ़ा जा रहा है… आधिकारिक रिकॉर्ड जाँचे जा रहे हैं…&quot;. Report headline: <strong>रजिस्ट्रेशन नंबर असली है। बस वह उनका नहीं है।</strong> Stamps: रिकॉर्ड से उलट.</td>
+<td>Laptop, home page → switch to <strong>हिंदी</strong>. Upload <code>demo/screenshots/scam-hi.png</code>. Progress list animates in Hindi. Report headline: <strong>रजिस्ट्रेशन नंबर असली है। बस वह उनका नहीं है।</strong> Stamps: रिकॉर्ड से उलट.</td>
 </tr>
 <tr>
 <td><strong>Narrator</strong></td>
-<td>&quot;The same investigation engine powers the web. Here&#39;s the Hindi version of the pitch — &#39;रोज़ 5% पक्का मुनाफ़ा&#39; — and the report comes back in Hindi, with the same evidence. The numbers and names are inserted exactly; only the explanation is translated, by hand-written templates.&quot;</td>
+<td>&quot;Here&#39;s the Hindi version of the pitch — &#39;रोज़ 5% पक्का मुनाफ़ा&#39; — and the report comes back in Hindi, with the same evidence. The numbers and names are inserted exactly; only the explanation is translated, by hand-written templates.&quot;</td>
 </tr>
 <tr>
 <td><strong>Notice</strong></td>
-<td>Identical verdicts across channels and languages.</td>
+<td>Identical verdicts in both languages.</td>
 </tr>
 <tr>
 <td><strong>Backup</strong></td>
-<td>If screenshot reading is unavailable, paste the Hindi text instead (same result while the text model is available).</td>
+<td>If screenshot reading is slow, paste the Hindi text instead (same result while the text model is available).</td>
 </tr>
 </tbody></table>
 <h2>3:15 – 3:45 · How it decides, and why you can trust it</h2>
@@ -252,22 +254,22 @@ browser with the dry-run report URL.</p>
 </thead>
 <tbody><tr>
 <td><strong>Screen</strong></td>
-<td>The WhatsApp chat again, then the Jaanch home page.</td>
+<td>The phone report again, then the Jaanch home page.</td>
 </tr>
 <tr>
 <td><strong>Narrator</strong></td>
-<td>&quot;Every investor in India already has WhatsApp. Jaanch meets them there — in Hindi or English — with official evidence before the money moves. Forward it. Jaanch investigates it.&quot;</td>
+<td>&quot;Every investor in India can take a screenshot. Jaanch turns it into official evidence — in Hindi or English — before the money moves. Paste it. Jaanch investigates it.&quot;</td>
 </tr>
 <tr>
 <td><strong>On screen</strong></td>
-<td><strong>Jaanch — forward it, Jaanch investigates it.</strong> Contributors: Dhruv Sharma · Anushika Chauhan · Pratyush Mishra</td>
+<td><strong>Jaanch — paste it, Jaanch investigates it.</strong> Contributors: Dhruv Sharma · Anushika Chauhan · Pratyush Mishra</td>
 </tr>
 </tbody></table>
 <hr>
 <h2>Recording notes</h2>
 <ul>
 <li>Keep the cursor still while the narrator reads a verdict; zoom (not pan) into text.</li>
-<li>Show real wait times once (the first WhatsApp reply); trim later waits to 2–3 seconds.</li>
+<li>Show the real wait once (the first report); trim later waits to 2–3 seconds.</li>
 <li>Never show a real person&#39;s phone number or chats other than the demo chat.</li>
 <li>The impersonation report&#39;s next steps show the contact email from SEBI&#39;s public record for the
 real registration holder (an individual&#39;s work address). Blur it in the edit.</li>

@@ -6,7 +6,7 @@ It must never become a source of false confidence, false accusation or financial
 ## Commitments
 
 1. **No overall verdict.** There is no safety score, risk percentage, "safe" badge or "scam"
-   label — not in the data model, the API, WhatsApp or the web app. Each claim gets one of four
+   label — not in the data model, the API or the web app. Each claim gets one of four
    verdicts, and "can't check" is always stated explicitly.
 2. **No accusations.** Jaanch says "the message says X; the official record shows Y". It never
    calls a person or firm a scammer or fraudster. When a registration number belongs to someone
@@ -35,15 +35,14 @@ It must never become a source of false confidence, false accusation or financial
 
 Data minimisation by design:
 
-| Data                                                 | Stored?          | How long                                                                                                 | Protection                                                                                                                                                              |
-| ---------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Screenshots, voice notes                             | Only until read  | Deleted right after reading (hard expiry 30 min); with Twilio, inbound media is also deleted from Twilio | Images re-encoded on upload, which strips EXIF/GPS metadata                                                                                                             |
-| Report (claims, evidence, transcript of the message) | Yes              | 7 days, or immediately on DELETE (web owner token / WhatsApp "DELETE")                                   | Unguessable 128-bit report ids                                                                                                                                          |
-| Requester phone number                               | No               | —                                                                                                        | Sessions and rate limits use an HMAC of the user id; the reply address is kept only AES-256-GCM-encrypted inside the job payload until the reply is sent, then scrubbed |
-| Requester's own number inside a forwarded screenshot | No               | —                                                                                                        | Redacted from the transcript before extraction ("[your number]")                                                                                                        |
-| IP address                                           | No               | —                                                                                                        | Rate limiting uses an HMAC of the IP                                                                                                                                    |
-| Amount paid, bank account, transaction ID            | Never asked      | —                                                                                                        | The "I already paid" flow is routing only; bank account numbers found in a message are masked to the last four digits                                                   |
-| Logs                                                 | Operational only | Provider retention                                                                                       | Route patterns instead of URLs, no message bodies, no phone numbers, credentials redacted                                                                               |
+| Data                                                 | Stored?          | How long                                                       | Protection                                                                                                            |
+| ---------------------------------------------------- | ---------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Screenshots, voice notes                             | Only until read  | Deleted right after reading (hard expiry 30 min)               | Images re-encoded on upload, which strips EXIF/GPS metadata                                                           |
+| Report (claims, evidence, transcript of the message) | Yes              | 7 days, or immediately with "Delete this report" (owner token) | Unguessable 128-bit report ids                                                                                        |
+| Phone number, name, account                          | Never asked      | —                                                              | No sign-up; nothing identifies the person checking                                                                    |
+| IP address                                           | No               | —                                                              | Rate limiting uses an HMAC of the IP                                                                                  |
+| Amount paid, bank account, transaction ID            | Never asked      | —                                                              | The "I already paid" flow is routing only; bank account numbers found in a message are masked to the last four digits |
+| Logs                                                 | Operational only | Provider retention                                             | Route patterns instead of URLs, no message bodies, no phone numbers, credentials redacted                             |
 
 **Model provider caveat (prototype).** Screenshots and voice notes are processed by NVIDIA's
 hosted API catalog. Its trial terms prohibit production use and personal data and allow NVIDIA to
@@ -52,14 +51,7 @@ log inputs. The web app and privacy page say so. Before real users rely on Jaanc
 
 ## Security
 
-- **Webhook authenticity:** every WhatsApp webhook is verified — Meta's `X-Hub-Signature-256`
-  (HMAC-SHA256 of the raw body with the App Secret, compared in constant time) or Twilio's
-  `X-Twilio-Signature` (HMAC-SHA1 with the Auth Token); invalid requests get 403. Verification
-  cannot be disabled in production. Meta's subscription check needs the verify token. Duplicate
-  deliveries are ignored by message id.
-- **SSRF:** media is fetched only through the provider's API — Meta's Graph API and its CDN hosts
-  (`*.fbsbx.com`, `*.fbcdn.net`), or `https://api.twilio.com`; redirects are checked against the
-  same hosts and followed only over HTTPS. Jaanch never opens links found in messages.
+- **SSRF:** Jaanch never opens links found in messages; uploads are the only content it fetches.
 - **Uploads:** type is determined from the bytes, not the client's claim; only JPEG/PNG/WebP and
   common audio types are accepted; size and count limits apply; images are fully decoded and
   re-encoded.
@@ -79,5 +71,5 @@ log inputs. The web app and privacy page say so. Before real users rely on Jaanc
 - Registers are snapshots refreshed daily, confirmed live when a number is missing; a very recent
   change can still be missed (the report shows the as-of date).
 - NSE/BSE caution notices are not machine-readable and are not yet included.
-- The WhatsApp number is Meta's free test number, which answers only registered testers (up to
-  five); a production deployment needs its own verified WhatsApp number.
+- Jaanch is web-only. A WhatsApp channel exists in the code but stays off: Meta's Cloud API needs
+  a verified business and Twilio's sandbox a paid account.
