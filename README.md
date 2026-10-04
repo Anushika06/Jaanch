@@ -161,7 +161,7 @@ against a real Postgres (`JAANCH_TEST_DATABASE_URL`).
 
 ## Demo
 
-A four-minute product demo script with dialogue, screen actions and backup paths:
+A 3:30 product demo script with dialogue, screen actions, recording setup and edit checklist:
 [docs/demo-video-script.md](docs/demo-video-script.md). Demo screenshots (fictional senders) are in
 [demo/screenshots](demo/screenshots).
 

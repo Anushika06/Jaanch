@@ -1,124 +1,160 @@
-# Demo video — production script (4:00)
+# Demo video: recording script (3:30)
 
-A product demo, not a slide talk: the viewer watches a person use the Jaanch website on a real
-phone and a laptop, against live official data. Technical points come up only where the screen
-shows them.
+This is a product demo, not a slide talk. Everything is recorded on **one laptop**, in segments
+that are joined in the edit. The "phone" is the Jaanch website in Chrome's mobile view, so no
+phone mirroring is needed.
 
-**Cast.** _Narrator_ (voice-over, calm, plain English with a few Hindi phrases). _Riya_ — the
-person using the phone (hands only, or a face cam in the corner).
+**Cast.** _Narrator_ (voice-over, calm, plain English with a few Hindi words). _Riya_, a 24-year-old
+first-time investor from Indore, appears only through her screen.
 
-**Screens.** Phone screen recording (WhatsApp chat + mobile browser) mirrored to the laptop; laptop
-browser at `https://<your-domain>`; one architecture diagram (from
-[architecture.md](architecture.md)).
-
-**Assets** (in the repository):
-
-- `demo/screenshots/scam-en.png` — the "Sharma Investments" pitch (English)
-- `demo/screenshots/scam-hi.png` — the same pitch in Hindi
-- `demo/screenshots/institutional.png` — an "institutional account / FPI / APK" pitch
-- The "SIP reminder" sample on the home page; optionally a genuine message the team received from
-  its own broker or mutual fund.
-
-> **About the registration number in the demo screenshots.** `INH000011431` is a real, current
-> SEBI registration (it belongs to 360 ONE Distribution Services Limited). It is used to show how
-> impersonators borrow real numbers; the registered firm has no connection to these fictional
-> messages. Say this on screen at 0:55. To use a different number, edit `demo/chat-mock.html` and
-> re-capture the screenshots.
+**Track:** A, Digital Fraud & Scam Resilience.
 
 ---
 
-## Pre-flight (30 minutes before recording)
+## Tools
 
-1. **Warm the server:** open `https://<api>/healthz` (free hosting sleeps after 15 minutes idle).
-   If the web app is on Vercel, it loads instantly; the first investigation may still wait for
-   the API to wake.
-2. **Fresh data:** `GET /api/v1/sources` — SEBI categories should show today's or yesterday's date.
-   If not: `POST /admin/ingest` with the admin token, wait a minute.
-3. **Dry run** every segment once (this also warms the AI models). Note each report URL as a
-   backup.
-4. Put `scam-en.png` in the phone's gallery (as if Riya had taken the screenshot herself) and
-   `scam-hi.png` on the laptop.
-5. Phone: Do Not Disturb on, battery > 50%, font size default. Browser: zoom 125%, one tab,
-   bookmarks bar hidden, language English.
+| Job                   | Use                                                                         | Why                                                                                         |
+| --------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Record                | **OBS Studio** (free), or **Cap** (cap.so, free, adds zoom automatically)   | Records at 1080p with no time limit. Loom's free plan caps length and quality.              |
+| Edit                  | **Clipchamp** (built into Windows 11, free)                                 | Trim, zoom, text overlays, auto-captions, blur, and a voice-over track in one app.          |
+| Voice                 | Any USB or earphone mic, in a quiet room with soft furnishings              | Bad audio hurts more than plain visuals.                                                     |
+| Phone look            | Chrome DevTools, device toolbar (Ctrl+Shift+M), "Pixel 7" at 100%           | Shows the real mobile UI on the laptop screen.                                              |
 
----
+OBS settings: canvas and output 1920×1080, 30 fps, MKV (remux to MP4 afterwards), mic on its own
+track. Record **one segment per file** so a mistake costs one retake, not the whole video.
 
-## 0:00 – 0:20 · Hook
+## The WhatsApp message (how to show it)
 
-|                          |                                                                                                                                                                                               |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Screen**               | Black. Then the phone: a WhatsApp chat from "Sharma Investments ✅" scrolling slowly — "SEBI Registered Research Analyst… Reg No: INH000011431… Guaranteed 30% monthly returns… Pay ₹4,999…". |
-| **Narrator**             | "Last week, Riya got this message. It has a SEBI registration number. She checked — the number is real." _(beat)_ "It just isn't theirs."                                                     |
-| **On screen text**       | Large, centred over a dimmed chat: **The registration number is real. It just isn't theirs.**                                                                                                 |
-| **Transition**           | Riya takes a screenshot of the chat.                                                                                                                                                          |
-| **Viewer should notice** | The pitch looks credible precisely because one part of it is true.                                                                                                                            |
+Use the chat mock that is already in the repository. **Don't use an AI-generated image as the
+screenshot you upload.** Image models garble small text, so "INH000011431" or the UPI ID would come
+out wrong. Jaanch would then read the wrong number, and the key verdict of the demo would break.
 
-## 0:20 – 1:35 · Live investigation on the phone
-
-| Time | Screen action                                                                                                                                                                                                                                                                                                                          | Narrator                                                                                                                                                                                                       | Notice                                                            |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 0:20 | Riya opens the Jaanch website on her phone, taps **Add screenshot**, picks the screenshot, taps **Investigate**.                                                                                                                                                                                                                       | "Before paying, Riya opens Jaanch. No app, no sign-up — she uploads the screenshot."                                                                                                                           | One screen, one button.                                           |
-| 0:28 | The progress list ticks through: reading the message → finding claims → checking official records → SEBI rules → writing the report.                                                                                                                                                                                                   | "Jaanch reads the screenshot, lists every claim in it, and checks each one against official records."                                                                                                          | Each stage is shown; nothing is hidden.                           |
-| 0:45 | The report appears. Hold on the headline: **The registration number is real. It just isn't theirs.** Zoom on the first stamp: **CONTRADICTED** — "The message says INH000011431 belongs to Sharma Investments. SEBI's register shows INH000011431 is registered to 360 ONE Distribution Services Limited (Mumbai) — a different name." | "First claim: the registration. The number exists — in SEBI's register it belongs to a different firm. That firm has nothing to do with this message; its number was borrowed."                                | The wording reports the record; nobody is called a scammer.       |
-| 1:00 | Scroll: 🔍 NOT FOUND (no registered firm named Sharma Investments), ❌ guaranteed returns, ❌ UPI ID; warnings (guaranteed returns, 100% accuracy claim, personal UPI ID).                                                                                                                                                             | "Second: guaranteed 30% a month. SEBI's rules don't allow registered analysts to promise that. Third: SEBI-registered firms must collect money through verified '@valid' UPI IDs — this one is a personal ID." | Each line cites a rule, not an opinion.                           |
-| 1:12 | Scroll to _Could not check_ and _What to do next_.                                                                                                                                                                                                                                                                                     | "And Jaanch is honest about what it can't check — who runs that Telegram group, or whether any return will ever be paid. Not finding a problem is never shown as safety."                                      | There is no overall "safe" or "scam" score anywhere.              |
-| 1:20 | Tap **Show evidence** under the first claim: the SEBI register entry with name, number, validity, official email and phone, "Open the official source". Scroll to **Who is contacting you, and who is registered**.                                                                                                                    | "Every verdict has evidence you can open on SEBI's own website. And this table is the heart of it: who is contacting you, versus who is registered. Same registration number — different name."                | The channel-binding table: Name _Different_, Registration _Same_. |
-
-**Backup path:** if the report takes longer than 60 seconds (a cold start or a slow model
-response), cut to the pre-recorded dry-run clip, then continue with the dry-run report URL.
-
-## 1:35 – 2:10 · A legitimate message
-
-|              |                                                                                                                                                                                                                                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Screen**   | Laptop, home page. Click the sample **SIP reminder** ("Your SIP of Rs 5,000 in XYZ Flexi Cap Fund will be debited… subject to market risks"). Click **Investigate**. Report: "We didn't find investment claims to check in this message." No warnings.                                                 |
-| **Narrator** | "Does Jaanch flag everything that mentions money? No. A normal SIP reminder — with the usual market-risk disclaimer — raises nothing."                                                                                                                                                                 |
-| **Then**     | _(Optional, if the team has one)_ paste a genuine message from your own broker or fund house that shows its registered name, number and official email. Report: ✅ **MATCHES** — "SEBI's register lists … The name in the message matches", and the contact table shows **Same domain** for the email. |
-| **Narrator** | "And when a firm uses its own registered name, number and official contacts, the record matches — while Jaanch still reminds you that details can be copied."                                                                                                                                          |
-| **Notice**   | MATCHES is evidence-based, never "safe".                                                                                                                                                                                                                                                               |
-| **Backup**   | If the network is slow, show the dry-run report tab.                                                                                                                                                                                                                                                   |
-
-## 2:10 – 2:40 · "I already paid"
-
-|              |                                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Screen**   | Back on the phone report. Tap **I already paid**. The recovery page: a large **Call 1930** button, then cybercrime.gov.in, tell the bank, UPI fraud complaint, keep evidence, beware of "recovery" offers. Tap **Copy evidence summary**; paste it into a notes app to show the text: report id, time, each claim with what SEBI's record showed, the UPI ID and phone from the message. |
-| **Narrator** | "If Riya had already paid, every minute matters. Jaanch doesn't ask for her bank details — it tells her exactly where to go, and hands her an evidence summary to attach to the complaint."                                                                                                                                                                                              |
-| **Notice**   | Routing only, nothing collected; the summary is ready to paste into 1930 / cybercrime.gov.in.                                                                                                                                                                                                                                                                                            |
-
-## 2:40 – 3:15 · In Hindi
-
-|              |                                                                                                                                                                                                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Screen**   | Laptop, home page → switch to **हिंदी**. Upload `demo/screenshots/scam-hi.png`. Progress list animates in Hindi. Report headline: **रजिस्ट्रेशन नंबर असली है। बस वह उनका नहीं है।** Stamps: रिकॉर्ड से उलट.                                |
-| **Narrator** | "Here's the Hindi version of the pitch — 'रोज़ 5% पक्का मुनाफ़ा' — and the report comes back in Hindi, with the same evidence. The numbers and names are inserted exactly; only the explanation is translated, by hand-written templates." |
-| **Notice**   | Identical verdicts in both languages.                                                                                                                                                                                                      |
-| **Backup**   | If screenshot reading is slow, paste the Hindi text instead (same result while the text model is available).                                                                                                                               |
-
-## 3:15 – 3:45 · How it decides, and why you can trust it
-
-|              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Screen**   | One diagram: **LLM reads → tools verify → code adjudicates → LLM explains**, with icons for SEBI registers, RBI Alert List, SEBI rules, and a lock for privacy.                                                                                                                                                                                                                                                                                                                                                           |
-| **Narrator** | "An AI model only reads the message and lists its claims — word for word, and anything it can't point to in the message is thrown away. Official sources do the verifying: SEBI's registers, refreshed daily and confirmed live, its list of cancelled registrations, RBI's alert list, and SEBI's own rules with their circular numbers. Fixed code — not the AI — decides each verdict. If a screenshot is blurry, Jaanch says 'can't check' instead of guessing. And screenshots are deleted the moment they're read." |
-| **Notice**   | Determinism and provenance, in one sentence each.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-
-## 3:45 – 4:00 · Impact
-
-|               |                                                                                                                                                                           |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Screen**    | The phone report again, then the Jaanch home page.                                                                                                                        |
-| **Narrator**  | "Every investor in India can take a screenshot. Jaanch turns it into official evidence — in Hindi or English — before the money moves. Paste it. Jaanch investigates it." |
-| **On screen** | **Jaanch — paste it, Jaanch investigates it.** Contributors: Dhruv Sharma · Anushika Chauhan · Pratyush Mishra                                                            |
+1. Open `demo/chat-mock.html#scam-en` in Chrome with the device toolbar set to Pixel 7. It looks
+   like WhatsApp on a phone. Record it scrolling slowly. This is the hook shot.
+2. Upload `demo/screenshots/scam-en.png`. It is the same chat, captured from that page.
+3. Optional, for more polish: generate a phone mockup with Gemini (prompt below) that has a
+   **plain green screen**. In Clipchamp, place `scam-en.png` over the green screen. That gives a
+   realistic hand-held phone with the exact, correct text.
 
 ---
 
-## Recording notes
+## Pre-flight (30 minutes before)
 
-- Keep the cursor still while the narrator reads a verdict; zoom (not pan) into text.
-- Show the real wait once (the first report); trim later waits to 2–3 seconds.
-- Never show a real person's phone number or chats other than the demo chat.
-- The impersonation report's next steps show the contact email from SEBI's public record for the
-  real registration holder (an individual's work address). Blur it in the edit.
-- Subtitles in English; Hindi segment subtitled in both.
-- Export 1080p, 30 fps; audio −16 LUFS.
+1. Wake the server: open `https://<api>/healthz` (free hosting sleeps after 15 minutes idle).
+2. Check that the data is fresh: `GET /api/v1/sources` should show SEBI dates from today or
+   yesterday. If not, run `POST /admin/ingest` and wait a minute.
+3. Do a dry run of every segment. This also warms the models. Keep each report URL open in a
+   spare tab as a backup.
+4. Chrome: a fresh profile, bookmarks bar hidden, zoom 110–125%, only the demo tabs open. Turn on
+   Windows Focus or Do Not Disturb, and hide the taskbar.
+5. Tab order: ① chat mock (Pixel 7) · ② Jaanch home (Pixel 7) · ③ Jaanch home (desktop) · ④–⑥
+   backup report URLs.
+
+---
+
+## Segments
+
+### 1 · Hook (0:00–0:15)
+
+- **Screen:** Tab ①. The WhatsApp chat from "Sharma Investments ✅" scrolls slowly past the
+  registration number, the "Guaranteed 30% monthly" line and the UPI ID.
+- **Narrator:** "Riya, a first-time investor in Indore, got this on WhatsApp. It quotes a SEBI
+  registration number. The number is real." _(beat)_ "It just isn't theirs."
+- **Edit:** In the last 3 seconds, dim the chat and show this text centred: **The registration
+  number is real. It just isn't theirs.**
+
+### 2 · The problem (0:15–0:30)
+
+- **Screen:** A plain title card, or stay on the dimmed chat.
+- **Narrator:** "Pitches like this borrow credibility: a real registration number, guaranteed
+  returns, a personal UPI ID, urgency. Checking them means knowing SEBI's registers and rules,
+  which most new investors in Tier-2 and Tier-3 cities, and their parents, never learn."
+- **On screen:** **Who it's for:** first-time investors · regional-language users · families.
+- _(Optional: add one statistic, with its source shown on screen, from the I4C/NCRP or SEBI
+  annual reports. Don't use numbers you can't cite.)_
+
+### 3 · Live investigation (0:30–1:30). The core of the demo.
+
+| Time | Screen (tab ②, mobile view)                                                                                                                                         | Narrator                                                                                                                                         |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0:30 | Jaanch home page. Click **Add screenshots**, choose `scam-en.png`, click **Investigate**.                                                                            | "Before paying, Riya opens Jaanch. It's a website: no app, no sign-up. She uploads the screenshot."                                              |
+| 0:38 | The progress list ticks through each stage. **In the edit, speed up the wait to about 5 seconds** and add a small "sped up" label.                                     | "Jaanch reads the message, lists every claim in it and checks each one against official records."                                                 |
+| 0:45 | The report appears. Zoom in on the headline, then on the first stamp, **CONTRADICTED**: "SEBI's register shows INH000011431 is registered to 360 ONE … a different name." | "Claim one: the registration. The number exists, but SEBI's register shows it belongs to a different firm, one with no link to this message."     |
+| 1:00 | Scroll to: 🔍 NOT FOUND (no registered "Sharma Investments"), then the warnings about guaranteed returns, "100% accuracy" and the personal UPI ID.                     | "Guaranteed 30% a month: SEBI's rules bar registered analysts from promising returns. And registered firms collect money through verified UPI IDs, not personal ones." |
+| 1:12 | Click **Show evidence**. The SEBI entry appears, with an "Open the official source" link. Scroll to the table **Who is contacting you / who is registered**.          | "Every verdict links to SEBI's own website. This table is the heart of it: the same number with a different name."                               |
+| 1:22 | Scroll to **Could not check**.                                                                                                                                       | "It also says what it can't check. And there's no 'safe' score. If Jaanch finds no problem, it doesn't call the message safe."                     |
+
+**Edit:** Blur the contact email of the real registration holder in the next-steps section.
+
+### 4 · No false alarm (1:30–1:45)
+
+- **Screen:** Tab ③ (desktop). Click the **SIP reminder** sample, then **Investigate**. The
+  report says there are no investment claims to check, and shows no warnings. Cut the wait.
+- **Narrator:** "Does it flag everything about money? No. An ordinary SIP reminder raises nothing.
+  Fewer false alarms means people keep trusting the warnings."
+
+### 5 · "I already paid" (1:45–2:05)
+
+- **Screen:** Back on the scam report (backup tab). Click **I already paid**. Show the large
+  **Call 1930** button, cybercrime.gov.in, the bank and UPI complaint steps. Click **Copy evidence
+  summary** and paste it into Notepad for 2 seconds.
+- **Narrator:** "If Riya has already paid, every minute counts. Jaanch never asks for her bank
+  details or OTP. It tells her where to go, and gives her an evidence summary ready to attach to the
+  complaint."
+
+### 6 · In Hindi (2:05–2:30)
+
+- **Screen:** Tab ③. Switch to **हिंदी**, upload `scam-hi.png`, click Investigate (cut the wait).
+  The headline reads **रजिस्ट्रेशन नंबर असली है। बस वह उनका नहीं है।** and the stamp reads
+  **रिकॉर्ड से उलट**.
+- **Narrator:** "The same pitch in Hindi, 'रोज़ 5% पक्का मुनाफ़ा', gets the same evidence back in
+  Hindi. The wording comes from reviewed templates, not free AI text. A voice note works too, for
+  people who'd rather speak than type."
+- **Edit:** Add English subtitles for the Hindi text on screen.
+
+### 7 · How it works and why you can trust it (2:30–3:05)
+
+- **Screen:** The diagram from [architecture.md](architecture.md), exported as an image:
+  **LLM reads → tools verify → code decides → LLM explains**. Add icons for the SEBI registers, the
+  RBI Alert List, SEBI circulars and a lock for privacy.
+- **Narrator:** "The AI only reads the message. Any quote it can't find in the message is
+  discarded. Official sources do the checking: SEBI's 12 registers, refreshed daily, its cancelled
+  list, RBI's Alert List and SEBI's rules with circular numbers. Fixed code, not AI, decides each
+  verdict. If a screenshot is blurry, it says 'can't check' instead of guessing. Screenshots are
+  deleted once read, there are no accounts, IP addresses aren't stored, and it never gives
+  investment advice."
+
+### 8 · Impact and scale (3:05–3:30)
+
+- **Screen:** The phone report, then the home page, then the closing card.
+- **Narrator:** "Anyone with a phone can take a screenshot. Jaanch turns it into official evidence
+  before the money moves. It runs on free-tier hosting today. New languages only need new
+  templates, and the WhatsApp channel is already built and waiting for a verified business
+  account. Next come NSE/BSE caution lists and mutual-fund distributor checks."
+- **Closing card:** **Jaanch · जाँच: paste it, Jaanch investigates it.** Add the live URL, the
+  GitHub link and the names Dhruv Sharma · Anushika Chauhan · Pratyush Mishra.
+
+---
+
+## How this covers the brief
+
+| Requirement / criterion            | Where                          |
+| ---------------------------------- | ------------------------------ |
+| Problem and target user            | 1, 2                           |
+| Working prototype, user journey    | 3, 4, 5                        |
+| Investor resilience and safety     | 3, 5                           |
+| Bharat-first (Hindi, voice, web)   | 3 (no app), 6                  |
+| Trust, privacy, guardrails         | 3 (no score), 5 (no OTP), 7    |
+| Technical architecture             | 7                              |
+| Impact and scalability             | 8                              |
+
+## Edit checklist
+
+- Speed up or cut every wait to under 5 seconds, and label the first one "sped up". Judges know
+  real calls take time.
+- Zoom in (Clipchamp "zoom" or Cap's auto-zoom) whenever the narrator reads a verdict. Keep the
+  cursor still.
+- Turn on auto-captions in English, then fix the Hindi words by hand.
+- Use quiet background music at about −30 dB under the voice, or none.
+- Export at 1080p, 30 fps. Keep the length between 3:15 and 3:45.
+- Show only the demo chat. No real phone numbers or chats.
