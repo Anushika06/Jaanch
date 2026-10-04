@@ -25,9 +25,13 @@ export { prepareImageTiles } from './image.js';
  * every expected identifier and Hindi phrase (12–26 s per screenshot); nemotron-3.5-lightning
  * passed every extraction check (2–13 s). Larger models (gemma-4-31b, kimi-k3, deepseek-v4.1)
  * were queued on the free tier for over two minutes per request at the time.
+ *
+ * Later the same day muse-glimmer started answering 404 ("Function … Not found for account")
+ * while still listed in /models; nemotron-3-nano-omni read every demo screenshot, identifiers
+ * included, in 4–7 s.
  */
 export const DEFAULT_MODELS = {
-  vision: 'meta/muse-glimmer-30b',
+  vision: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
   text: 'nvidia/nemotron-3.5-lightning-30b-a3b',
   narrator: 'nvidia/nemotron-3.5-lightning-30b-a3b',
   asr: 'openai/whisper-large-v3',

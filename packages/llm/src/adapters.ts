@@ -26,6 +26,13 @@ import {
 const QUALITY_RANK = { good: 0, partial: 1, poor: 2, unreadable: 3 } as const;
 
 /**
+ * JSON modes for image reads. Schema-constrained decoding on hosted vision models can stall far
+ * past the attempt timeout while the grammar compiles (2026-10-04: llama-3.2-11b-vision >90 s with
+ * json_schema vs 9 s with the schema in the prompt), so prompt mode goes first. Output is validated.
+ */
+const IMAGE_JSON_MODES = ['prompt', 'json_object', 'json_schema'] as const;
+
+/**
  * Per-attempt limits, about twice the slowest normal response measured on the hosted endpoints
  * (2026-10-04: screenshot 12–26 s, identifier re-read 7–11 s, extraction 2–13 s). A request
  * still queued after that is abandoned and retried; the engine's per-stage timeout caps the total.
@@ -86,6 +93,7 @@ export class NimReader implements Reader {
         await this.client.chatJson({
           model: this.modelId,
           schema: ModelImageReading,
+          modes: [...IMAGE_JSON_MODES],
           maxTokens: 3000,
           signal,
           attemptTimeoutMs: ATTEMPT_TIMEOUT_MS.readImage,
@@ -133,6 +141,7 @@ export class NimReader implements Reader {
       const r = await this.client.chatJson({
         model: this.modelId,
         schema: ModelIdentifierReading,
+        modes: [...IMAGE_JSON_MODES],
         maxTokens: 800,
         signal,
         attemptTimeoutMs: ATTEMPT_TIMEOUT_MS.readIdentifiers,
