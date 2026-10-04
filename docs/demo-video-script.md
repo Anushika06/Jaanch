@@ -11,44 +11,127 @@ first-time investor from Indore, appears only through her screen.
 
 ---
 
-## Tools
+## Links and files
 
-| Job                   | Use                                                                         | Why                                                                                         |
-| --------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Record                | **OBS Studio** (free), or **Cap** (cap.so, free, adds zoom automatically)   | Records at 1080p with no time limit. Loom's free plan caps length and quality.              |
-| Edit                  | **Clipchamp** (built into Windows 11, free)                                 | Trim, zoom, text overlays, auto-captions, blur, and a voice-over track in one app.          |
-| Voice                 | Any USB or earphone mic, in a quiet room with soft furnishings              | Bad audio hurts more than plain visuals.                                                     |
-| Phone look            | Chrome DevTools, device toolbar (Ctrl+Shift+M), "Pixel 7" at 100%           | Shows the real mobile UI on the laptop screen.                                              |
+| What                       | Where                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------ |
+| Jaanch website (live)      | **https://jaanch-api.onrender.com/** (Render serves both the website and the API)           |
+| Health check (wakes it up) | https://jaanch-api.onrender.com/healthz                                                    |
+| Data freshness             | https://jaanch-api.onrender.com/api/v1/sources (SEBI `asOf` should be today or yesterday) |
+| Fake WhatsApp chat (EN)    | `file:///C:/Codeing/Jaanch/demo/chat-mock.html#scam-en`                                    |
+| Fake WhatsApp chat (HI)    | `file:///C:/Codeing/Jaanch/demo/chat-mock.html#scam-hi`                                    |
+| Screenshot to upload (EN)  | `C:\Codeing\Jaanch\demo\screenshots\scam-en.png`                                           |
+| Screenshot to upload (HI)  | `C:\Codeing\Jaanch\demo\screenshots\scam-hi.png`                                           |
+| Architecture diagram       | `file:///C:/Codeing/Jaanch/docs/architecture.html` (first diagram; screenshot it)          |
+| Report / "already paid"    | `https://jaanch-api.onrender.com/r/<id>` and `https://jaanch-api.onrender.com/r/<id>/paid` |
 
-OBS settings: canvas and output 1920×1080, 30 fps, MKV (remux to MP4 afterwards), mic on its own
-track. Record **one segment per file** so a mistake costs one retake, not the whole video.
+> `jaanch.vercel.app` is **not** this project. It is someone else's site. Don't use it or show it.
 
-## The WhatsApp message (how to show it)
-
-Use the chat mock that is already in the repository. **Don't use an AI-generated image as the
-screenshot you upload.** Image models garble small text, so "INH000011431" or the UPI ID would come
-out wrong. Jaanch would then read the wrong number, and the key verdict of the demo would break.
-
-1. Open `demo/chat-mock.html#scam-en` in Chrome with the device toolbar set to Pixel 7. It looks
-   like WhatsApp on a phone. Record it scrolling slowly. This is the hook shot.
-2. Upload `demo/screenshots/scam-en.png`. It is the same chat, captured from that page.
-3. Optional, for more polish: generate a phone mockup with Gemini (prompt below) that has a
-   **plain green screen**. In Clipchamp, place `scam-en.png` over the green screen. That gives a
-   realistic hand-held phone with the exact, correct text.
+Copy both PNGs into a folder `Desktop\demo` before recording, so the file picker opens in one click.
 
 ---
 
-## Pre-flight (30 minutes before)
+## How to record
 
-1. Wake the server: open `https://<api>/healthz` (free hosting sleeps after 15 minutes idle).
-2. Check that the data is fresh: `GET /api/v1/sources` should show SEBI dates from today or
-   yesterday. If not, run `POST /admin/ingest` and wait a minute.
-3. Do a dry run of every segment. This also warms the models. Keep each report URL open in a
-   spare tab as a backup.
-4. Chrome: a fresh profile, bookmarks bar hidden, zoom 110–125%, only the demo tabs open. Turn on
-   Windows Focus or Do Not Disturb, and hide the taskbar.
-5. Tab order: ① chat mock (Pixel 7) · ② Jaanch home (Pixel 7) · ③ Jaanch home (desktop) · ④–⑥
-   backup report URLs.
+### Laptop or phone: laptop only
+
+Record everything on the laptop. For the "phone" scenes, use Chrome's mobile view of the real
+site:
+
+1. Open the site and press **F12**, then **Ctrl+Shift+M**. Pick **Pixel 7** from the device list at
+   the top and set the zoom there to 100%.
+2. Undock DevTools: in the DevTools ⋮ menu, choose **Dock side → Undock into separate window**, then
+   minimise that window. The page stays in phone mode, and the Chrome window now shows only the
+   phone.
+
+Recording an actual phone and moving the files across adds work and looks inconsistent. The mobile
+view is the same website and the same code.
+
+### Speaking and clicking at once: don't
+
+Record in **two passes**. Editors call the second one a voice-over:
+
+1. **Pass 1, screen only, no talking.** Do the clicks for one segment, slowly and calmly, with the
+   mic off. Pause about a second on every important thing (a stamp, a table, a button).
+2. **Pass 2, voice only.** Read that segment's narration into the mic. You aren't watching the
+   screen, so read from the script. Do two or three takes and keep the best.
+3. **Edit.** Put the voice on the timeline first. Then trim or speed up the video to fit the voice.
+   The voice leads and the video follows.
+
+If two people are available, one can click while the other narrates live. The two-pass method is
+still easier to get right.
+
+### Segments or one continuous take: segments
+
+Record **one file per segment** (eight segments, listed below). A mistake costs one short retake,
+waiting for the server is cut out automatically, and you can record segments in any order.
+
+### Tools (all built into Windows 11, free)
+
+| Job          | Tool                                                       | How                                                                                                                                                                                                                       |
+| ------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Screen video | **Snipping Tool**, recording mode                          | **Win+Shift+R**, then drag across the whole screen, turn the mic **off**, and click **Start**. Click Stop when done. It saves an MP4 to `Videos\Screen Recordings`; rename it `seg3.mp4` and so on. |
+| Voice        | **Sound Recorder** app (type "Sound Recorder" in Start)    | One recording per segment. Mic 15–20 cm from your mouth, in a room with curtains or a bed (less echo), fan off.                                                                                                          |
+| Edit         | **Clipchamp** (in Start; sign in with a Microsoft account) | Import everything and build the timeline (see Edit steps below). Export at 1080p.                                                                                                                                        |
+
+Loom also works for screen video, but its free plan limits length and quality, and the two-pass
+method makes its webcam and live mic unnecessary. Use **OBS Studio** only if Snipping Tool doesn't
+have recording on your machine (update it from the Microsoft Store first).
+
+Earphone mics with an in-line mic are fine. A laptop's built-in mic is acceptable in a quiet room.
+
+### Edit steps in Clipchamp
+
+1. Make a new 16:9 video. Drag in all the segment MP4s and voice files.
+2. For each segment, place the voice clip first, then the matching screen clip above it.
+3. Cut dead time. Select a waiting stretch and use **Speed** (for example 4×) or split and delete
+   it. Add the text "sped up" to the first wait.
+4. Zoom in on verdicts: select the clip, then use **Crop** or **Zoom** (scale up to 150–200% and
+   centre on the stamp). Hold it while the narrator reads it.
+5. Text overlays: the hook line, "Who it's for", and the closing card (use **Text** templates).
+6. Blur the registration holder's email on the report (**Effects → Blur** on a cropped overlay
+   copy).
+7. **Captions → Auto captions** (English), then fix the Hindi words by hand.
+8. Optional music from **Content library → Audio** at about 10% volume.
+9. **Export → 1080p**. Watch it once on your phone before you submit.
+
+### The WhatsApp message
+
+Use the chat mock (tab 1). **Don't upload an AI-generated image.** Image models garble small text
+such as "INH000011431" or the UPI ID, so Jaanch would read the wrong number and the main verdict
+would break. If you want a hand-held phone shot for the opening, generate a phone mockup with a
+plain green screen and place `scam-en.png` over it in Clipchamp.
+
+---
+
+## Before you press record (30 minutes before)
+
+1. Open https://jaanch-api.onrender.com/healthz. The free server sleeps after 15 minutes idle,
+   and the first load can take about a minute.
+2. Open https://jaanch-api.onrender.com/api/v1/sources and check that the SEBI `asOf` dates are
+   today or yesterday.
+3. **Dry run:** upload `scam-en.png` once and `scam-hi.png` once (Hindi mode). Copy both report
+   URLs (`/r/<id>`) into a note. These are your backups, and they warm up the AI models.
+4. Windows: turn on **Do Not Disturb** (notification bell → Do not disturb), close WhatsApp
+   Desktop, Teams, mail and anything else that pops up, and hide the taskbar (taskbar settings →
+   Automatically hide). Plug in the charger.
+5. Chrome: use a guest window (profile icon → **Guest**), so there are no bookmarks, extensions or
+   personal autofill. Turn off "Show bookmarks bar". Use page zoom 110–125% for desktop scenes.
+6. Open these tabs, in this order, in the guest window:
+
+| Tab | URL                                                     | Mode               | Used in segment |
+| --- | ------------------------------------------------------- | ------------------ | --------------- |
+| 1   | `file:///C:/Codeing/Jaanch/demo/chat-mock.html#scam-en` | Pixel 7 (DevTools) | 1, 2            |
+| 2   | https://jaanch-api.onrender.com/                        | Pixel 7 (DevTools) | 3               |
+| 3   | https://jaanch-api.onrender.com/                        | Desktop            | 4, 6            |
+| 4   | backup scam report `/r/<id>`                            | Pixel 7            | 3 (backup), 5   |
+| 5   | backup Hindi report `/r/<id>`                           | Desktop            | 6 (backup)      |
+| 6   | `file:///C:/Codeing/Jaanch/docs/architecture.html`      | Desktop            | 7               |
+
+DevTools device mode applies per tab. Turn it on in tabs 1, 2 and 4 separately.
+
+7. Have Notepad open but minimised (for the evidence-summary paste in segment 5).
+8. Keep this script open on your phone, not the laptop, to read from during the voice pass.
 
 ---
 
