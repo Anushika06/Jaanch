@@ -11,25 +11,31 @@ import { onLinkClick, useRoute } from './router';
 function Header({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   return (
     <header className="site-header">
-      <a
-        className="wordmark"
-        href="/"
-        onClick={(e) => onLinkClick(e, '/')}
-        aria-label="Jaanch home"
-      >
-        <span className="wordmark__dev" lang="hi">
-          जाँच
-        </span>
-        <span className="wordmark__lat">Jaanch</span>
-      </a>
-      <button
-        type="button"
-        className="lang-toggle"
-        onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
-        lang={lang === 'en' ? 'hi' : 'en'}
-      >
-        {tr(lang, 'switchTo')}
-      </button>
+      <div className="site-header__inner">
+        <a
+          className="wordmark"
+          href="/"
+          onClick={(e) => onLinkClick(e, '/')}
+          aria-label="Jaanch home"
+        >
+          <img className="wordmark__mark" src="/icon.svg" alt="" width="30" height="30" />
+          <span className="wordmark__dev" lang="hi">
+            जाँच
+          </span>
+          <span className="wordmark__lat">Jaanch</span>
+        </a>
+        <button
+          type="button"
+          className="lang-toggle"
+          onClick={() => setLang(lang === 'en' ? 'hi' : 'en')}
+          lang={lang === 'en' ? 'hi' : 'en'}
+        >
+          <span className="lang-toggle__glyph" aria-hidden="true">
+            {lang === 'en' ? 'अ' : 'A'}
+          </span>
+          {tr(lang, 'switchTo')}
+        </button>
+      </div>
     </header>
   );
 }
@@ -37,13 +43,24 @@ function Header({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
 function Footer({ lang }: { lang: Lang }) {
   return (
     <footer className="site-footer">
-      <p>{tr(lang, 'disclaimer')}</p>
-      <p>
-        <a href="/privacy" onClick={(e) => onLinkClick(e, '/privacy')}>
-          {tr(lang, 'footerPrivacy')}
-        </a>
-      </p>
-      <p className="fineprint">{tr(lang, 'footerContributors')}</p>
+      <div className="site-footer__inner">
+        <p className="site-footer__brand">
+          <span lang="hi">जाँच</span> Jaanch
+        </p>
+        <p>{tr(lang, 'disclaimer')}</p>
+        <p className="site-footer__links">
+          <a href="/privacy" onClick={(e) => onLinkClick(e, '/privacy')}>
+            {tr(lang, 'footerPrivacy')}
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href="tel:1930">1930</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://cybercrime.gov.in" target="_blank" rel="noopener noreferrer">
+            cybercrime.gov.in
+          </a>
+        </p>
+        <p className="fineprint">{tr(lang, 'footerContributors')}</p>
+      </div>
     </footer>
   );
 }

@@ -138,9 +138,11 @@ describe('Report', () => {
       'CONTRADICTED',
       "CAN'T CHECK",
     ]);
-    expect(screen.getByText('Who is contacting you, and who is registered')).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Who is contacting you, and who is registered' }),
+    ).toBeTruthy();
     expect(screen.getByText('Different')).toBeTruthy();
-    expect(screen.getByText('Could not check')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Could not check' })).toBeTruthy();
     expect(screen.getByText('Open the official source').getAttribute('href')).toContain(
       'sebi.gov.in',
     );

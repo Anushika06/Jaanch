@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError, type Recovery } from '../api';
 import { useApp } from '../context';
+import { IconArrowLeft, IconCopy, IconExternal, IconPhone } from '../components/Icons';
 import { onLinkClick } from '../router';
 
 const GENERIC_STEPS = {
@@ -81,43 +82,46 @@ export function RecoveryPage({ id }: { id: string }) {
     <main id="main" className="page-recovery">
       {!missing && (
         <a className="back" href={`/r/${id}`} onClick={(e) => onLinkClick(e, `/r/${id}`)}>
-          {t('backToReport')}
+          <IconArrowLeft /> {t('backToReport')}
         </a>
       )}
       <h1 className="recovery__title">{t('recoveryTitle')}</h1>
       <p className="recovery__intro">{t('recoveryIntro')}</p>
-      <ol className="recovery__steps">
-        {steps.map((s) => (
-          <li key={s.id}>
-            <p>{s.text}</p>
-            {s.phone && (
-              <a className="button-urgent" href={`tel:${s.phone.replace(/\s+/g, '')}`}>
-                {t('call', { phone: s.phone })}
-              </a>
-            )}
-            {s.href && (
-              <a
-                className="button-secondary"
-                href={s.href}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {s.href.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-              </a>
-            )}
-          </li>
-        ))}
-      </ol>
-      {data && (
-        <section className="recovery__summary" aria-labelledby="summary-title">
-          <h2 id="summary-title">{t('recoverySummaryTitle')}</h2>
-          <p className="fineprint">{t('recoverySummaryNote')}</p>
-          <textarea id="summary" readOnly value={data.summary} rows={14} />
-          <button type="button" className="button-secondary" onClick={() => void copy()}>
-            {copied ? t('copied') : t('copySummary')}
-          </button>
-        </section>
-      )}
+      <div className="recovery__grid">
+        <ol className="recovery__steps">
+          {steps.map((s) => (
+            <li key={s.id}>
+              <p>{s.text}</p>
+              {s.phone && (
+                <a className="button-urgent" href={`tel:${s.phone.replace(/\s+/g, '')}`}>
+                  <IconPhone /> {t('call', { phone: s.phone })}
+                </a>
+              )}
+              {s.href && (
+                <a
+                  className="button-secondary"
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {s.href.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                  <IconExternal />
+                </a>
+              )}
+            </li>
+          ))}
+        </ol>
+        {data && (
+          <section className="recovery__summary" aria-labelledby="summary-title">
+            <h2 id="summary-title">{t('recoverySummaryTitle')}</h2>
+            <p className="fineprint">{t('recoverySummaryNote')}</p>
+            <textarea id="summary" readOnly value={data.summary} rows={14} />
+            <button type="button" className="button-secondary" onClick={() => void copy()}>
+              <IconCopy /> {copied ? t('copied') : t('copySummary')}
+            </button>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

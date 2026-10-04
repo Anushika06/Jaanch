@@ -1,9 +1,25 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type DragEvent,
+  type FormEvent,
+} from 'react';
 import { api, ApiError, rememberToken } from '../api';
 import { useApp } from '../context';
 import { prepareScreenshot, preferredRecordingType } from '../media';
 import { navigate } from '../router';
 import { SAMPLES } from '../samples';
+import {
+  IconArrowRight,
+  IconAudioFile,
+  IconClose,
+  IconImage,
+  IconLink,
+  IconMic,
+  IconStop,
+} from './Icons';
 
 interface Shot {
   file: File;
@@ -26,6 +42,8 @@ export function Composer({
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const audioInput = useRef<HTMLInputElement>(null);
@@ -35,7 +53,7 @@ export function Composer({
 
   useEffect(() => () => shots.forEach((s) => URL.revokeObjectURL(s.url)), [shots]);
 
-  async function addShots(files: FileList | null) {
+  async function addShots(files: FileList | File[] | null) {
     if (!files) return;
     setError(null);
     const next: Shot[] = [];
@@ -86,6 +104,20 @@ export function Composer({
     }
   }
 
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    void addShots(e.dataTransfer.files);
+  }
+
+  // Screenshots pasted straight from the clipboard are added like uploads.
+  function onPaste(e: ClipboardEvent) {
+    const images = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+    if (images.length === 0) return;
+    e.preventDefault();
+    void addShots(images);
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!text.trim() && !link.trim() && shots.length === 0 && !audio) {
@@ -94,14 +126,14 @@ export function Composer({
     }
     setBusy(true);
     setError(null);
-    const form = new FormData();
-    form.append('locale', lang);
-    if (text.trim()) form.append('text', text);
-    if (link.trim()) form.append('url', link.trim());
-    shots.forEach((s) => form.append('files', s.file, s.file.name));
-    if (audio) form.append('files', audio, audio.name);
+    const body = new FormData();
+    body.append('locale', lang);
+    if (text.trim()) body.append('text', text);
+    if (link.trim()) body.append('url', link.trim());
+    shots.forEach((s) => body.append('files', s.file, s.file.name));
+    if (audio) body.append('files', audio, audio.name);
     try {
-      const created = await api.create(form);
+      const created = await api.create(body);
       if (created.ownerToken) rememberToken(created.id, created.ownerToken);
       navigate(`/r/${created.id}`);
     } catch (err) {
@@ -122,16 +154,34 @@ export function Composer({
   }
 
   return (
-    <form className="composer" onSubmit={submit} aria-describedby="composer-help">
+    <form ref={form} className="composer" onSubmit={submit} aria-describedby="composer-help">
       <label className="composer__label" htmlFor="message">
         {t('composerLabel')}
       </label>
-      <div className="bubble">
+      <div
+        className={`bubble ${dragging ? 'bubble--drop' : ''}`}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes('Files')) return;
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+        }}
+        onDrop={onDrop}
+      >
         <textarea
           id="message"
           className="composer__text"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onPaste={onPaste}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              form.current?.requestSubmit();
+            }
+          }}
           placeholder={t('composerPlaceholder')}
           rows={6}
           maxLength={20_000}
@@ -148,7 +198,7 @@ export function Composer({
                   onClick={() => setShots((p) => p.filter((_, j) => j !== i))}
                   aria-label={`${t('remove')} ${i + 1}`}
                 >
-                  ×
+                  <IconClose />
                 </button>
               </li>
             ))}
@@ -156,74 +206,94 @@ export function Composer({
         )}
         {audio && (
           <div className="attachment">
-            <span>🎙 {audio.name}</span>
+            <span className="attachment__name">
+              <IconMic /> {audio.name}
+            </span>
             <button type="button" className="linkish" onClick={() => setAudio(null)}>
               {t('remove')}
             </button>
           </div>
         )}
         {showLink && (
-          <input
-            className="composer__link"
-            type="url"
-            inputMode="url"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            placeholder={t('linkPlaceholder')}
-            aria-label={t('linkPlaceholder')}
-          />
+          <div className="composer__linkrow">
+            <IconLink />
+            <input
+              className="composer__link"
+              type="url"
+              inputMode="url"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder={t('linkPlaceholder')}
+              aria-label={t('linkPlaceholder')}
+            />
+          </div>
         )}
-      </div>
-
-      <div className="composer__tools">
-        <button
-          type="button"
-          className="tool"
-          onClick={() => fileInput.current?.click()}
-          disabled={shots.length >= maxImages}
-        >
-          <span aria-hidden="true">🖼</span> {t('addScreens')}
-        </button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          multiple
-          hidden
-          onChange={(e) => void addShots(e.target.files)}
-        />
-        {meta?.audioSupported && (
-          <>
-            <button
-              type="button"
-              className={`tool ${recording ? 'tool--live' : ''}`}
-              onClick={() => void toggleRecording()}
-              aria-pressed={recording}
-            >
-              <span aria-hidden="true">🎙</span> {recording ? t('stopRecording') : t('addVoice')}
-            </button>
-            {!recording && (
+        <div className="composer__tools">
+          <button
+            type="button"
+            className="tool"
+            onClick={() => fileInput.current?.click()}
+            disabled={shots.length >= maxImages}
+          >
+            <IconImage /> <span>{t('addScreens')}</span>
+            {shots.length > 0 && (
+              <span className="tool__count">
+                {shots.length}/{maxImages}
+              </span>
+            )}
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            hidden
+            onChange={(e) => void addShots(e.target.files)}
+          />
+          {meta?.audioSupported && (
+            <>
               <button
                 type="button"
-                className="tool tool--quiet"
-                onClick={() => audioInput.current?.click()}
+                className={`tool ${recording ? 'tool--live' : ''}`}
+                onClick={() => void toggleRecording()}
+                aria-pressed={recording}
               >
-                {t('uploadAudio')}
+                {recording ? <IconStop /> : <IconMic />}{' '}
+                <span>{recording ? t('stopRecording') : t('addVoice')}</span>
               </button>
-            )}
-            <input
-              ref={audioInput}
-              type="file"
-              accept="audio/*"
-              hidden
-              onChange={(e) => setAudio(e.target.files?.[0] ?? null)}
-            />
-          </>
-        )}
-        {!showLink && (
-          <button type="button" className="tool" onClick={() => setShowLink(true)}>
-            <span aria-hidden="true">🔗</span> {t('addLink')}
-          </button>
+              {!recording && (
+                <button
+                  type="button"
+                  className="tool tool--quiet"
+                  onClick={() => audioInput.current?.click()}
+                >
+                  <IconAudioFile /> <span>{t('uploadAudio')}</span>
+                </button>
+              )}
+              <input
+                ref={audioInput}
+                type="file"
+                accept="audio/*"
+                hidden
+                onChange={(e) => setAudio(e.target.files?.[0] ?? null)}
+              />
+            </>
+          )}
+          {!showLink && (
+            <button type="button" className="tool" onClick={() => setShowLink(true)}>
+              <IconLink /> <span>{t('addLink')}</span>
+            </button>
+          )}
+          {text.length > 0 && (
+            <span className="composer__count" aria-hidden="true">
+              {t('chars', { n: text.length.toLocaleString(lang === 'hi' ? 'hi-IN' : 'en-IN') })}
+            </span>
+          )}
+        </div>
+        {dragging && (
+          <div className="bubble__drop" aria-hidden="true">
+            <IconImage /> {t('dropHere')}
+          </div>
         )}
       </div>
 
@@ -233,8 +303,20 @@ export function Composer({
         </p>
       )}
 
-      <button type="submit" className="investigate" disabled={busy || recording}>
-        {busy ? t('starting') : t('investigate')}
+      <button type="submit" className="investigate" disabled={busy || recording} aria-busy={busy}>
+        {busy ? (
+          <>
+            <span className="spinner" aria-hidden="true" /> {t('starting')}
+          </>
+        ) : (
+          <>
+            <span>{t('investigate')}</span>
+            <IconArrowRight size={22} />
+            <kbd className="investigate__kbd" aria-hidden="true">
+              {t('submitHint')}
+            </kbd>
+          </>
+        )}
       </button>
 
       <div id="composer-help" className="composer__help">
@@ -249,15 +331,26 @@ export function Composer({
       <div className="samples">
         <span className="samples__title">{t('samplesTitle')}</span>
         <div className="samples__list">
-          <button type="button" className="chip" onClick={() => setText(SAMPLES.adviser)}>
-            {t('sampleAdviser')}
-          </button>
-          <button type="button" className="chip" onClick={() => setText(SAMPLES.crypto)}>
-            {t('sampleCrypto')}
-          </button>
-          <button type="button" className="chip" onClick={() => setText(SAMPLES.genuine)}>
-            {t('sampleGenuine')}
-          </button>
+          {(
+            [
+              ['adviser', 'sampleAdviser'],
+              ['crypto', 'sampleCrypto'],
+              ['genuine', 'sampleGenuine'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`chip ${text === SAMPLES[key] ? 'chip--on' : ''}`}
+              aria-pressed={text === SAMPLES[key]}
+              onClick={() => setText(SAMPLES[key])}
+            >
+              <span className="chip__title">{t(label)}</span>
+              <span className="chip__preview" aria-hidden="true">
+                {SAMPLES[key].split('\n')[0]}
+              </span>
+            </button>
+          ))}
         </div>
         <p className="samples__note">{t('sampleNote')}</p>
       </div>
